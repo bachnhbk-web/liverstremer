@@ -375,9 +375,9 @@
             <div>
               <label class="block text-[11px] text-zinc-400 mb-1">Chất lượng</label>
               <select id="qualitySelect" class="w-full px-2.5 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100">
-                <option value="720p" selected>HD 720p (2.5 Mbps)</option>
-                <option value="1080p">Full HD 1080p (4.5 Mbps)</option>
-                <option value="480p">SD 480p (1.2 Mbps)</option>
+                <option value="480p">SD 480p (1.5 Mbps · Siêu mượt 4G)</option>
+                <option value="720p" selected>HD 720p (2.2 Mbps · Cân bằng)</option>
+                <option value="1080p">Full HD 1080p (4.0 Mbps · Wi-Fi mạnh)</option>
               </select>
             </div>
             <div>
@@ -552,9 +552,9 @@
       };
 
       const QUALITY_PRESETS = {
-        '480p': { w: 854, h: 480, bps: 1200000 },
-        '720p': { w: 1280, h: 720, bps: 2500000 },
-        '1080p': { w: 1920, h: 1080, bps: 4500000 }
+        '480p': { w: 854, h: 480, bps: 1500000 },
+        '720p': { w: 1280, h: 720, bps: 2200000 },
+        '1080p': { w: 1920, h: 1080, bps: 4000000 }
       };
 
       const els = {
@@ -1095,8 +1095,8 @@
         if (!els.scoreEnabled.checked) return;
 
         const m = 22 * scale;
-        const cardW = Math.min(w - m * 2, 360 * scale);
-        const headerH = 26 * scale;
+        const cardW = Math.min(w - m * 2, 390 * scale);
+        const headerH = 28 * scale;
         const rowH = 38 * scale;
         const totalH = headerH + rowH * 2;
         const pos = els.scorePos.value;
@@ -1111,30 +1111,30 @@
           by = h - totalH - (els.tickerEnabled.checked ? 54 * scale : m);
         }
 
-        // Shadow & Card Base
-        ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+        // Card Base
+        ctx.fillStyle = '#09090b';
         roundRect(ctx, bx, by, cardW, totalH, 10 * scale);
         ctx.fill();
 
-        // Top Category Bar
+        // Top Category Bar (căn giữa, bỏ chữ TAY 1 / TAY 2)
         ctx.fillStyle = '#059669';
         roundRect(ctx, bx, by, cardW, headerH, 10 * scale);
         ctx.fill();
         ctx.fillRect(bx, by + headerH - 8 * scale, cardW, 8 * scale);
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = `700 ${Math.round(12 * scale)}px Inter, sans-serif`;
+        ctx.font = `800 ${Math.round(12.5 * scale)}px Inter, sans-serif`;
         ctx.textBaseline = 'middle';
-        ctx.fillText(state.match.category.toUpperCase(), bx + 12 * scale, by + headerH / 2, cardW - 90 * scale);
-
-        // Hand Tag (TAY 1 / TAY 2)
-        ctx.fillStyle = '#f59e0b';
-        ctx.font = `800 ${Math.round(11 * scale)}px Inter, sans-serif`;
-        ctx.textAlign = 'right';
-        ctx.fillText(`TAY ${state.match.serverHand}`, bx + cardW - 10 * scale, by + headerH / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText(state.match.category.toUpperCase(), bx + cardW / 2, by + headerH / 2 + 1, cardW - 24 * scale);
         ctx.textAlign = 'left';
 
-        // Rows for Team 1 & Team 2
+        // Kích thước các vùng: [Tên VĐV (nền riêng)] | [Chấm giao 1/2] | [Set] | [Điểm số (nền riêng)]
+        const scoreBoxW = 48 * scale;
+        const setBoxW = 28 * scale;
+        const dotZoneW = 34 * scale;
+        const nameZoneW = cardW - scoreBoxW - setBoxW - dotZoneW;
+
         const rows = [
           { name: state.match.team1, score: state.match.score1, set: state.match.set1, serving: state.match.servingTeam === 1, color: '#10b981' },
           { name: state.match.team2, score: state.match.score2, set: state.match.set2, serving: state.match.servingTeam === 2, color: '#38bdf8' }
@@ -1142,43 +1142,60 @@
 
         rows.forEach((r, idx) => {
           const ry = by + headerH + idx * rowH;
-          if (idx === 0) {
-            ctx.fillStyle = 'rgba(255,255,255,0.08)';
-            ctx.fillRect(bx, ry + rowH - 1, cardW, 1);
-          }
 
-          // Team Accent Bar
+          // 1. Nền riêng cho khu vực tên VĐV (xanh đen đậm tách biệt với ô điểm)
+          ctx.fillStyle = idx === 0 ? '#1e293b' : '#0f172a';
+          ctx.fillRect(bx, ry, nameZoneW + dotZoneW, rowH);
+
+          // Thanh màu nhận diện đội bên trái
           ctx.fillStyle = r.color;
-          ctx.fillRect(bx, ry + 5 * scale, 4 * scale, rowH - 10 * scale);
+          ctx.fillRect(bx, ry, 5 * scale, rowH);
 
-          // Serve Dot
+          // Tên VĐV
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = `700 ${Math.round(14.5 * scale)}px Inter, sans-serif`;
+          ctx.textAlign = 'left';
+          ctx.fillText(r.name, bx + 13 * scale, ry + rowH / 2 + 1, nameZoneW - 18 * scale);
+
+          // 2. Chấm báo hiệu tay giao (1 chấm = Tay 1, 2 chấm = Tay 2) nằm giữa Tên VĐV và Điểm số
           if (r.serving) {
-            ctx.fillStyle = '#f59e0b';
-            ctx.beginPath();
-            ctx.arc(bx + 16 * scale, ry + rowH / 2, 5 * scale, 0, Math.PI * 2);
-            ctx.fill();
+            const dotCenterY = ry + rowH / 2;
+            const dotZoneStart = bx + nameZoneW;
+            ctx.fillStyle = '#facc15';
+            if (Number(state.match.serverHand) === 2) {
+              ctx.beginPath();
+              ctx.arc(dotZoneStart + dotZoneW * 0.33, dotCenterY, 4.5 * scale, 0, Math.PI * 2);
+              ctx.arc(dotZoneStart + dotZoneW * 0.69, dotCenterY, 4.5 * scale, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.beginPath();
+              ctx.arc(dotZoneStart + dotZoneW * 0.5, dotCenterY, 4.8 * scale, 0, Math.PI * 2);
+              ctx.fill();
+            }
           }
 
-          // Team Name
-          ctx.fillStyle = '#f4f4f5';
-          ctx.font = `700 ${Math.round(15 * scale)}px Inter, sans-serif`;
-          ctx.fillText(r.name, bx + 28 * scale, ry + rowH / 2 + 1, cardW - 120 * scale);
-
-          // Set Box
-          ctx.fillStyle = 'rgba(39, 39, 42, 0.9)';
-          ctx.fillRect(bx + cardW - 86 * scale, ry + 5 * scale, 30 * scale, rowH - 10 * scale);
-          ctx.fillStyle = '#a1a1aa';
-          ctx.font = `700 ${Math.round(14 * scale)}px Inter, sans-serif`;
+          // 3. Ô Set (nền trung tính)
+          const setX = bx + nameZoneW + dotZoneW;
+          ctx.fillStyle = '#27272a';
+          ctx.fillRect(setX, ry, setBoxW, rowH);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = `700 ${Math.round(13 * scale)}px Inter, sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(String(r.set), bx + cardW - 71 * scale, ry + rowH / 2 + 1);
+          ctx.fillText(String(r.set), setX + setBoxW / 2, ry + rowH / 2 + 1);
 
-          // Score Box
-          ctx.fillStyle = r.serving ? '#f59e0b' : '#27272a';
-          ctx.fillRect(bx + cardW - 52 * scale, ry + 4 * scale, 46 * scale, rowH - 8 * scale);
+          // 4. Ô Điểm số (nền riêng nổi bật: Vàng cam khi giao / Xám đậm khi đỡ)
+          const scoreX = setX + setBoxW;
+          ctx.fillStyle = r.serving ? '#f59e0b' : '#334155';
+          ctx.fillRect(scoreX, ry, scoreBoxW, rowH);
           ctx.fillStyle = r.serving ? '#09090b' : '#ffffff';
           ctx.font = `900 ${Math.round(20 * scale)}px Inter, sans-serif`;
-          ctx.fillText(String(r.score), bx + cardW - 29 * scale, ry + rowH / 2 + 1);
+          ctx.fillText(String(r.score), scoreX + scoreBoxW / 2, ry + rowH / 2 + 1);
           ctx.textAlign = 'left';
+
+          if (idx === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.14)';
+            ctx.fillRect(bx, ry + rowH - 1, cardW, 1);
+          }
         });
       }
 
@@ -1328,7 +1345,19 @@
         drawTicker(w, h, scale, dt);
       }
 
+      let lastVuTick = 0;
+      let wakeLockSentinel = null;
+      async function requestScreenWakeLock() {
+        try {
+          if ('wakeLock' in navigator && !wakeLockSentinel) {
+            wakeLockSentinel = await navigator.wakeLock.request('screen');
+          }
+        } catch (e) {}
+      }
+
       function updateAudioMeter(now) {
+        if (now - lastVuTick < 110) return;
+        lastVuTick = now;
         if (state.micMuted) {
           els.vuMeterBar.style.width = '0%';
           return;
@@ -1476,8 +1505,13 @@
         state.liveRecorder = rec;
         state.bytesSentWindow = 0;
         state.lastBitrateTick = Date.now();
+        requestScreenWakeLock();
         rec.ondataavailable = (ev) => {
           if (ev.data && ev.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            // Chống nghẽn hàng đợi mạng khi 4G yếu
+            if (ws.bufferedAmount > 2500000) {
+              return;
+            }
             ws.send(ev.data);
             state.bytesSentWindow += ev.data.size;
             const now = Date.now();
@@ -1488,7 +1522,7 @@
             }
           }
         };
-        rec.start(500);
+        rec.start(250);
       }
 
       function beginLiveUI(isRealRelay) {
