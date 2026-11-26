@@ -7,11 +7,23 @@ const { spawn } = require('child_process');
 const PORT = process.env.PORT || 8080;
 const app = express();
 
-// Phục vụ trực tiếp giao diện LiveStream Pro khi mở trên điện thoại
+// Phục vụ giao diện LiveStream Pickleball (index.html) & Trang Trọng Tài (referee.html)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
+
+// Quản lý phòng đồng bộ điểm số Trọng tài <-> Camera Live
+// rooms: Map<roomId, { state: object | null, clients: Set<WebSocket> }>
+const rooms = new Map();
+
+function getRoom(roomId) {
+  const id = String(roomId || 'SAN-1').trim().toUpperCase();
+  if (!rooms.has(id)) {
+    rooms.set(id, { state: null, clients: new Set() });
+  }
+  return { id, room: rooms.get(id) };
+}
 
 function buildRtmpDestination(url, key) {
   const cleanUrl = url.endsWith('/') ? url : `${url}/`;
@@ -20,6 +32,7 @@ function buildRtmpDestination(url, key) {
 
 wss.on('connection', (ws) => {
   let ffmpeg = null;
+  let joinedRoomId = null;
 
   const sendLog = (log, level = 'info') => {
     if (ws.readyState === ws.OPEN) {
@@ -37,10 +50,46 @@ wss.on('connection', (ws) => {
     }
   };
 
+  const leaveRoom = () => {
+    if (joinedRoomId && rooms.has(joinedRoomId)) {
+      const r = rooms.get(joinedRoomId);
+      r.clients.delete(ws);
+      if (r.clients.size === 0 && !r.state) {
+        rooms.delete(joinedRoomId);
+      }
+    }
+    joinedRoomId = null;
+  };
+
   ws.on('message', (data, isBinary) => {
     if (!isBinary) {
       try {
         const msg = JSON.parse(data.toString());
+
+        // --- Đồng bộ điểm số Trọng tài ---
+        if (msg.type === 'join_room') {
+          leaveRoom();
+          const { id, room } = getRoom(msg.roomId);
+          joinedRoomId = id;
+          room.clients.add(ws);
+          if (room.state && ws.readyState === ws.OPEN) {
+            ws.send(JSON.stringify({ type: 'score_sync', roomId: id, state: room.state }));
+          }
+          return;
+        }
+
+        if (msg.type === 'score_update') {
+          const { id, room } = getRoom(msg.roomId || joinedRoomId);
+          room.state = msg.state;
+          for (const client of room.clients) {
+            if (client !== ws && client.readyState === ws.OPEN) {
+              client.send(JSON.stringify({ type: 'score_sync', roomId: id, state: msg.state }));
+            }
+          }
+          return;
+        }
+
+        // --- Điều khiển luồng FFmpeg RTMP ---
         if (msg.type === 'start') {
           stopFfmpeg();
           const { youtube, facebook, fps = 30, bitrate = 2500000 } = msg.config || {};
@@ -58,7 +107,7 @@ wss.on('connection', (ws) => {
             return;
           }
 
-          const gop = fps * 2; // Keyframe mỗi 2 giây — bắt buộc cho YouTube & Facebook Live Producer
+          const gop = fps * 2;
           const videoBitrateK = `${Math.round(bitrate / 1000)}k`;
           const maxrateK = `${Math.round((bitrate * 1.15) / 1000)}k`;
           const bufsizeK = `${Math.round((bitrate * 2) / 1000)}k`;
@@ -117,10 +166,17 @@ wss.on('connection', (ws) => {
     }
   });
 
-  ws.on('close', stopFfmpeg);
-  ws.on('error', stopFfmpeg);
+  ws.on('close', () => {
+    stopFfmpeg();
+    leaveRoom();
+  });
+
+  ws.on('error', () => {
+    stopFfmpeg();
+    leaveRoom();
+  });
 });
 
 server.listen(PORT, () => {
-  console.log(`LiveStream Pro Relay đang chạy tại cổng ${PORT}`);
+  console.log(`Pickleball Live Studio Relay đang chạy tại cổng ${PORT}`);
 });
