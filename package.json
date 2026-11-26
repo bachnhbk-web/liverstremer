@@ -1,0 +1,13 @@
+{
+  "name": "livestream-pro-relay",
+  "version": "1.0.0",
+  "description": "Máy chủ Relay Node.js + FFmpeg đẩy luồng camera điện thoại song song lên YouTube Live và Facebook Live",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "ws": "^8.18.0"
+  }
+}

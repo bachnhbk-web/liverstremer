@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>LiveStream Pro — Phát Trực Tiếp YouTube & Facebook</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #09090b;
+      color: #f4f4f5;
+      overscroll-behavior: none;
+    }
+    .glass-panel {
+      background: rgba(24, 24, 27, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(63, 63, 70, 0.6);
+    }
+    .pulse-live {
+      animation: pulseLive 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseLive {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.92); }
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    input[type="range"] {
+      accent-color: #ef4444;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-red-500/30">
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 glass-panel border-b border-zinc-800 px-3 py-2.5">
+    <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-red-600 to-rose-500 flex items-center justify-center shrink-0 shadow-lg shadow-red-900/30">
+          <i data-lucide="radio" class="w-5 h-5 text-white"></i>
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-sm sm:text-base font-bold tracking-tight truncate">LiveStream Pro</h1>
+          <div class="flex items-center gap-1.5 text-[11px] text-zinc-400">
+            <span id="headerStatusDot" class="w-2 h-2 rounded-full bg-zinc-500"></span>
+            <span id="headerStatusText" class="truncate">Chờ bật camera</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Timer & Active Badges -->
+      <div class="flex items-center gap-2 shrink-0">
+        <div id="liveTimerBadge" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600/20 border border-red-500/50 text-red-400 text-xs font-bold tabular-nums">
+          <span class="w-2 h-2 rounded-full bg-red-500 pulse-live"></span>
+          <span id="liveTimerText">00:00:00</span>
+        </div>
+        <button id="btnToggleCamera" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs font-semibold text-zinc-100 border border-zinc-700 transition">
+          <i data-lucide="video" class="w-4 h-4 text-emerald-400"></i>
+          <span id="btnToggleCameraLabel">Bật Camera</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Left Column: Live Preview Monitor & Quick Controls -->
+    <section class="lg:col-span-7 flex flex-col gap-3">
+      <!-- Video Stage -->
+      <div class="relative rounded-2xl overflow-hidden bg-black border border-zinc-800 shadow-2xl">
+        <div id="stageWrapper" class="relative w-full aspect-video bg-zinc-950 flex items-center justify-center transition-all duration-300 mx-auto">
+          <canvas id="studioCanvas" class="w-full h-full object-contain block"></canvas>
+          <video id="cameraVideo" class="hidden" autoplay playsinline muted></video>
+
+          <!-- Empty State Overlay before camera starts -->
+          <div id="cameraEmptyOverlay" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-zinc-900/90 to-black/95">
+            <div class="w-14 h-14 rounded-2xl bg-zinc-800/90 border border-zinc-700 flex items-center justify-center mb-3">
+              <i data-lucide="smartphone" class="w-7 h-7 text-red-400"></i>
+            </div>
+            <h2 class="text-base sm:text-lg font-bold text-white mb-1">Sẵn sàng phát trực tiếp</h2>
+            <p class="text-xs sm:text-sm text-zinc-400 max-w-sm mb-4">
+              Bật camera điện thoại để quay trực tiếp hoặc dùng chế độ Mô phỏng Studio để thử nghiệm bảng chữ, logo và ghi hình.
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-2.5">
+              <button id="btnStartCamHero" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-sm font-semibold text-white shadow-lg shadow-red-900/40 transition">
+                <i data-lucide="camera" class="w-4 h-4"></i>
+                Mở Camera Điện Thoại
+              </button>
+              <button id="btnStartDemoHero" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-sm font-semibold text-zinc-200 border border-zinc-700 transition">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                Chạy Chế Độ Thử
+              </button>
+            </div>
+          </div>
+
+          <!-- Floating Top Status Chips on Stage -->
+          <div id="stageTopBar" class="hidden absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
+            <div class="flex items-center gap-1.5">
+              <span id="stageSourceChip" class="px-2 py-0.5 rounded-md bg-black/65 text-[11px] font-semibold text-zinc-200 border border-white/10">CAM SAU</span>
+              <span id="stageResChip" class="px-2 py-0.5 rounded-md bg-black/65 text-[11px] font-medium text-zinc-300 border border-white/10">720p · 30fps</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <span id="stageYtChip" class="hidden px-2 py-0.5 rounded-md bg-red-600/90 text-[10px] font-bold text-white">YT</span>
+              <span id="stageFbChip" class="hidden px-2 py-0.5 rounded-md bg-blue-600/90 text-[10px] font-bold text-white">FB</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio VU Meter Strip -->
+        <div class="px-3 py-2 bg-zinc-950 border-t border-zinc-800/80 flex items-center gap-3">
+          <button id="btnMuteMic" type="button" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition" title="Bật/Tắt Mic">
+            <i id="micIcon" data-lucide="mic" class="w-4 h-4 text-emerald-400"></i>
+          </button>
+          <div class="flex-1">
+            <div class="flex items-center justify-between text-[11px] text-zinc-400 mb-1">
+              <span id="micStatusLabel">Micro: Đang mở</span>
+              <span id="bitrateReadout" class="tabular-nums font-medium text-zinc-300">0 kbps</span>
+            </div>
+            <div class="w-full h-2 rounded-full bg-zinc-800 overflow-hidden">
+              <div id="vuMeterBar" class="h-full w-0 bg-gradient-to-r from-emerald-500 via-amber-400 to-red-500 transition-all duration-75"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Action Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button id="btnSwitchCam" type="button" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl glass-panel hover:bg-zinc-800 active:scale-95 text-xs font-semibold transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4 text-sky-400"></i>
+          Đổi Cam
+        </button>
+        <button id="btnOrientation" type="button" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl glass-panel hover:bg-zinc-800 active:scale-95 text-xs font-semibold transition">
+          <i data-lucide="ratio" class="w-4 h-4 text-violet-400"></i>
+          <span id="orientationLabel">16:9 Ngang</span>
+        </button>
+        <button id="btnMirror" type="button" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl glass-panel hover:bg-zinc-800 active:scale-95 text-xs font-semibold transition">
+          <i data-lucide="flip-horizontal" class="w-4 h-4 text-amber-400"></i>
+          <span id="mirrorLabel">Lật Gương: Tắt</span>
+        </button>
+        <button id="btnCleanScreen" type="button" class="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl glass-panel hover:bg-zinc-800 active:scale-95 text-xs font-semibold transition">
+          <i data-lucide="eye-off" class="w-4 h-4 text-zinc-300"></i>
+          <span id="cleanScreenLabel">Màn Sạch: Tắt</span>
+        </button>
+      </div>
+
+      <!-- Primary Broadcast & Record Controls -->
+      <div class="glass-panel rounded-2xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+        <button id="btnGoLive" type="button" class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.99] text-sm sm:text-base font-bold text-white shadow-lg shadow-red-900/40 transition">
+          <i id="goLiveIcon" data-lucide="radio" class="w-5 h-5"></i>
+          <span id="goLiveText">BẮT ĐẦU PHÁT LIVE</span>
+        </button>
+        <button id="btnRecord" type="button" class="sm:w-44 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 active:scale-[0.99] text-sm font-semibold text-zinc-100 border border-zinc-700 transition">
+          <span id="recDot" class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+          <span id="recText">Ghi Hình Máy</span>
+        </button>
+      </div>
+
+      <!-- Live Telemetry Log -->
+      <div class="glass-panel rounded-2xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+            <i data-lucide="terminal" class="w-3.5 h-3.5 text-zinc-400"></i>
+            Nhật ký luồng phát
+          </span>
+          <button id="btnClearLog" type="button" class="text-[11px] text-zinc-400 hover:text-zinc-200">Xóa log</button>
+        </div>
+        <div id="logBox" class="h-24 overflow-y-auto text-[11px] font-mono text-zinc-400 space-y-1 bg-zinc-950/80 rounded-lg p-2 border border-zinc-800/80">
+          <div class="text-zinc-500">[Hệ thống] Sẵn sàng. Nhập Khóa luồng YouTube/Facebook và bật camera để bắt đầu.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Tabbed Studio Controls -->
+    <section class="lg:col-span-5 flex flex-col gap-3">
+      <!-- Tabs -->
+      <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+        <button type="button" data-tab="platforms" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold bg-zinc-800 text-white shadow transition flex items-center justify-center gap-1.5">
+          <i data-lucide="cast" class="w-3.5 h-3.5 text-red-400"></i>
+          Kênh Phát
+        </button>
+        <button type="button" data-tab="overlays" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition flex items-center justify-center gap-1.5">
+          <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-400"></i>
+          Đồ Họa
+        </button>
+        <button type="button" data-tab="setup" class="tab-btn py-2 px-2 rounded-lg text-xs font-semibold text-zinc-400 hover:text-zinc-200 transition flex items-center justify-center gap-1.5">
+          <i data-lucide="server" class="w-3.5 h-3.5 text-sky-400"></i>
+          Server Relay
+        </button>
+      </div>
+
+      <!-- TAB 1: PLATFORMS (YouTube + Facebook + Quality) -->
+      <div id="tab-platforms" class="tab-panel space-y-3">
+        <!-- YouTube Card -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center">
+                <i data-lucide="youtube" class="w-4 h-4 text-red-500"></i>
+              </span>
+              <div>
+                <h3 class="text-sm font-bold text-white">YouTube Live</h3>
+                <p class="text-[11px] text-zinc-400">RTMP Chuẩn (Live Studio)</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input id="ytEnabled" type="checkbox" class="sr-only peer" checked />
+              <div class="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+            </label>
+          </div>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">URL Máy chủ YouTube</label>
+              <input id="ytUrl" type="text" value="rtmp://a.rtmp.youtube.com/live2/" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-red-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">Khóa luồng (Stream Key)</label>
+              <div class="relative">
+                <input id="ytKey" type="password" placeholder="xxxx-xxxx-xxxx-xxxx-xxxx" class="w-full pl-3 pr-9 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-red-500" />
+                <button type="button" data-toggle-secret="ytKey" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Facebook Card -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center">
+                <i data-lucide="facebook" class="w-4 h-4 text-blue-400"></i>
+              </span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Facebook Live</h3>
+                <p class="text-[11px] text-zinc-400">RTMPS Bảo mật (Live Producer)</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input id="fbEnabled" type="checkbox" class="sr-only peer" checked />
+              <div class="w-10 h-5 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+          </div>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">URL Máy chủ Facebook</label>
+              <input id="fbUrl" type="text" value="rtmps://live-api-s.facebook.com:443/rtmp/" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-blue-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">Khóa luồng (Stream Key)</label>
+              <div class="relative">
+                <input id="fbKey" type="password" placeholder="FB-xxxx-xxxx-xxxx..." class="w-full pl-3 pr-9 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-blue-500" />
+                <button type="button" data-toggle-secret="fbKey" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200">
+                  <i data-lucide="eye" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Relay URL & Video Quality -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-3">
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-semibold text-zinc-300">Địa chỉ Máy chủ Relay (WSS)</label>
+              <span class="text-[10px] text-amber-400">Bắt buộc khi phát thật</span>
+            </div>
+            <input id="relayUrl" type="text" placeholder="wss://relay-cua-ban.onrender.com" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-sky-500" />
+            <p class="text-[11px] text-zinc-500 mt-1">
+              Để trống nếu chỉ muốn quay thử &amp; ghi hình vào máy. Xem tab <strong>Server Relay</strong> để cài máy chủ đẩy song song YouTube + Facebook.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2.5 pt-1 border-t border-zinc-800">
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">Chất lượng hình ảnh</label>
+              <select id="qualitySelect" class="w-full px-2.5 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-red-500">
+                <option value="720p" selected>HD 720p (2.5 Mbps · Khuyên dùng)</option>
+                <option value="1080p">Full HD 1080p (4.5 Mbps · Wi-Fi)</option>
+                <option value="480p">SD 480p (1.2 Mbps · Mạng 4G yếu)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-zinc-400 mb-1">Khung hình (FPS)</label>
+              <select id="fpsSelect" class="w-full px-2.5 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-red-500">
+                <option value="30" selected>30 FPS (Ổn định FB/YT)</option>
+                <option value="24">24 FPS (Tiết kiệm pin)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: OVERLAYS (Banner, Ticker, Logo, Badge) -->
+      <div id="tab-overlays" class="tab-panel hidden space-y-3">
+        <!-- Lower Third Banner -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="type" class="w-4 h-4 text-amber-400"></i>
+              Bảng Tiêu Đề (Lower-Third)
+            </h3>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input id="bannerEnabled" type="checkbox" class="sr-only peer" checked />
+              <div class="w-10 h-5 bg-zinc-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+          <input id="bannerTitle" type="text" value="PHÁT TRỰC TIẾP ĐA KÊNH" placeholder="Tiêu đề chính..." class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-amber-500" />
+          <input id="bannerSubtitle" type="text" value="YouTube Live & Facebook Live · Chất lượng HD" placeholder="Dòng phụ..." class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 focus:outline-none focus:border-amber-500" />
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-zinc-400">Màu nhấn:</span>
+            <button type="button" data-accent="#ef4444" class="accent-btn w-6 h-6 rounded-full bg-red-500 ring-2 ring-white"></button>
+            <button type="button" data-accent="#2563eb" class="accent-btn w-6 h-6 rounded-full bg-blue-600"></button>
+            <button type="button" data-accent="#10b981" class="accent-btn w-6 h-6 rounded-full bg-emerald-500"></button>
+            <button type="button" data-accent="#f59e0b" class="accent-btn w-6 h-6 rounded-full bg-amber-500"></button>
+            <button type="button" data-accent="#9333ea" class="accent-btn w-6 h-6 rounded-full bg-purple-600"></button>
+          </div>
+        </div>
+
+        <!-- Scrolling Ticker -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="scroll-text" class="w-4 h-4 text-sky-400"></i>
+              Chữ Chạy Chân Trang
+            </h3>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input id="tickerEnabled" type="checkbox" class="sr-only peer" checked />
+              <div class="w-10 h-5 bg-zinc-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+          <input id="tickerText" type="text" value="Chào mừng quý khán giả đang theo dõi trực tiếp trên YouTube và Facebook! Hãy bấm Like, Chia sẻ và Đăng ký kênh để ủng hộ nhé!" class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 focus:outline-none focus:border-sky-500" />
+          <div class="flex items-center gap-3">
+            <span class="text-[11px] text-zinc-400 shrink-0">Tốc độ:</span>
+            <input id="tickerSpeed" type="range" min="40" max="220" value="100" class="flex-1" />
+          </div>
+        </div>
+
+        <!-- Logo Overlay -->
+        <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="image" class="w-4 h-4 text-emerald-400"></i>
+              Logo Kênh / Nhà Tài Trợ
+            </h3>
+            <button id="btnRemoveLogo" type="button" class="hidden text-[11px] text-rose-400 hover:text-rose-300">Xóa logo</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="flex-1 cursor-pointer flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-semibold text-zinc-200 transition">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              <span>Tải ảnh Logo (PNG/JPG)</span>
+              <input id="logoInput" type="file" accept="image/*" class="hidden" />
+            </label>
+            <select id="logoPos" class="px-2.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-zinc-200">
+              <option value="tr" selected>Góc Phải Trên</option>
+              <option value="tl">Góc Trái Trên</option>
+              <option value="br">Góc Phải Dưới</option>
+              <option value="bl">Góc Trái Dưới</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-[11px] text-zinc-400 shrink-0">Kích thước:</span>
+            <input id="logoSize" type="range" min="48" max="180" value="96" class="flex-1" />
+          </div>
+        </div>
+
+        <!-- LIVE Badge Toggle -->
+        <div class="glass-panel rounded-2xl p-3.5 flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-white">Nhãn LIVE &amp; Đồng hồ trên video</h3>
+            <p class="text-[11px] text-zinc-400">Gắn nhãn đỏ góc trên bên trái khung hình</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input id="badgeEnabled" type="checkbox" class="sr-only peer" checked />
+            <div class="w-10 h-5 bg-zinc-700 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- TAB 3: RELAY SERVER GUIDE -->
+      <div id="tab-setup" class="tab-panel hidden space-y-3">
+        <div class="glass-panel rounded-2xl p-4 space-y-3 text-xs text-zinc-300 leading-relaxed">
+          <div class="flex items-start gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/40 flex items-center justify-center shrink-0 mt-0.5">
+              <i data-lucide="info" class="w-4 h-4 text-sky-400"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white mb-1">Tại sao cần Máy chủ Relay?</h3>
+              <p class="text-zinc-400">
+                Trình duyệt điện thoại (Chrome/Safari) không hỗ trợ gửi trực tiếp giao thức <strong>RTMP / RTMPS</strong>. Gói <code>livestream-relay-server.zip</code> đi kèm sẽ nhận hình từ điện thoại qua <code>wss://</code> và dùng <strong>FFmpeg</strong> đẩy song song lên cả YouTube &amp; Facebook chuẩn H.264/AAC (khắc phục lỗi màn hình đen trên Facebook Live Producer).
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-2 border-t border-zinc-800">
+            <h4 class="font-bold text-white">Cách triển khai nhanh (Render / Railway / VPS):</h4>
+            <ol class="list-decimal list-inside space-y-1.5 text-zinc-300">
+              <li>Giải nén tệp <strong>livestream-relay-server.zip</strong> và đẩy lên GitHub hoặc VPS.</li>
+              <li>Chọn triển khai bằng <strong>Docker</strong> (đã tích hợp sẵn Node.js + FFmpeg).</li>
+              <li>Lấy tên miền HTTPS được cấp, đổi thành <code>wss://ten-mien-cua-ban.com</code> và dán vào ô <strong>Máy chủ Relay</strong> ở tab <em>Kênh Phát</em>.</li>
+              <li>Dán Khóa luồng từ YouTube Studio &amp; Facebook Live Producer rồi bấm <strong>Bắt đầu phát Live</strong>.</li>
+            </ol>
+          </div>
+
+          <div class="bg-zinc-950 rounded-xl p-3 border border-zinc-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-zinc-400">Lệnh chạy nhanh trên VPS (Docker)</span>
+              <button id="btnCopyDockerCmd" type="button" class="text-[11px] text-sky-400 hover:text-sky-300 font-semibold">Sao chép</button>
+            </div>
+            <pre id="dockerCmdText" class="text-[11px] font-mono text-emerald-400 overflow-x-auto no-scrollbar">docker build -t live-relay . &amp;&amp; docker run -d -p 8080:8080 live-relay</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-semibold text-white shadow-2xl opacity-0 pointer-events-none transition-all duration-300"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // --- State ---
+      const state = {
+        mode: 'idle', // 'idle' | 'camera' | 'demo'
+        facingMode: 'environment',
+        orientation: 'landscape', // 'landscape' (16:9) | 'portrait' (9:16)
+        mirror: false,
+        cleanScreen: false,
+        micMuted: false,
+        isLive: false,
+        isRecording: false,
+        liveStartTime: null,
+        accentColor: '#ef4444',
+        logoImg: null,
+        tickerX: 1280,
+        stream: null,
+        audioCtx: null,
+        analyser: null,
+        audioDest: null,
+        ws: null,
+        liveRecorder: null,
+        localRecorder: null,
+        recordedChunks: [],
+        rafId: null,
+        timerInterval: null,
+        bytesSentWindow: 0,
+        lastBitrateTick: Date.now()
+      };
+
+      const QUALITY_PRESETS = {
+        '480p': { w: 854, h: 480, bps: 1200000 },
+        '720p': { w: 1280, h: 720, bps: 2500000 },
+        '1080p': { w: 1920, h: 1080, bps: 4500000 }
+      };
+
+      // --- DOM Elements ---
+      const els = {
+        canvas: document.getElementById('studioCanvas'),
+        video: document.getElementById('cameraVideo'),
+        stageWrapper: document.getElementById('stageWrapper'),
+        emptyOverlay: document.getElementById('cameraEmptyOverlay'),
+        stageTopBar: document.getElementById('stageTopBar'),
+        stageSourceChip: document.getElementById('stageSourceChip'),
+        stageResChip: document.getElementById('stageResChip'),
+        stageYtChip: document.getElementById('stageYtChip'),
+        stageFbChip: document.getElementById('stageFbChip'),
+        headerStatusDot: document.getElementById('headerStatusDot'),
+        headerStatusText: document.getElementById('headerStatusText'),
+        liveTimerBadge: document.getElementById('liveTimerBadge'),
+        liveTimerText: document.getElementById('liveTimerText'),
+        btnToggleCamera: document.getElementById('btnToggleCamera'),
+        btnToggleCameraLabel: document.getElementById('btnToggleCameraLabel'),
+        btnStartCamHero: document.getElementById('btnStartCamHero'),
+        btnStartDemoHero: document.getElementById('btnStartDemoHero'),
+        btnSwitchCam: document.getElementById('btnSwitchCam'),
+        btnOrientation: document.getElementById('btnOrientation'),
+        orientationLabel: document.getElementById('orientationLabel'),
+        btnMirror: document.getElementById('btnMirror'),
+        mirrorLabel: document.getElementById('mirrorLabel'),
+        btnCleanScreen: document.getElementById('btnCleanScreen'),
+        cleanScreenLabel: document.getElementById('cleanScreenLabel'),
+        btnMuteMic: document.getElementById('btnMuteMic'),
+        micIcon: document.getElementById('micIcon'),
+        micStatusLabel: document.getElementById('micStatusLabel'),
+        vuMeterBar: document.getElementById('vuMeterBar'),
+        bitrateReadout: document.getElementById('bitrateReadout'),
+        btnGoLive: document.getElementById('btnGoLive'),
+        goLiveText: document.getElementById('goLiveText'),
+        btnRecord: document.getElementById('btnRecord'),
+        recDot: document.getElementById('recDot'),
+        recText: document.getElementById('recText'),
+        logBox: document.getElementById('logBox'),
+        btnClearLog: document.getElementById('btnClearLog'),
+        ytEnabled: document.getElementById('ytEnabled'),
+        ytUrl: document.getElementById('ytUrl'),
+        ytKey: document.getElementById('ytKey'),
+        fbEnabled: document.getElementById('fbEnabled'),
+        fbUrl: document.getElementById('fbUrl'),
+        fbKey: document.getElementById('fbKey'),
+        relayUrl: document.getElementById('relayUrl'),
+        qualitySelect: document.getElementById('qualitySelect'),
+        fpsSelect: document.getElementById('fpsSelect'),
+        bannerEnabled: document.getElementById('bannerEnabled'),
+        bannerTitle: document.getElementById('bannerTitle'),
+        bannerSubtitle: document.getElementById('bannerSubtitle'),
+        tickerEnabled: document.getElementById('tickerEnabled'),
+        tickerText: document.getElementById('tickerText'),
+        tickerSpeed: document.getElementById('tickerSpeed'),
+        logoInput: document.getElementById('logoInput'),
+        logoPos: document.getElementById('logoPos'),
+        logoSize: document.getElementById('logoSize'),
+        btnRemoveLogo: document.getElementById('btnRemoveLogo'),
+        badgeEnabled: document.getElementById('badgeEnabled'),
+        btnCopyDockerCmd: document.getElementById('btnCopyDockerCmd'),
+        dockerCmdText: document.getElementById('dockerCmdText'),
+        toast: document.getElementById('toast')
+      };
+
+      const ctx = els.canvas.getContext('2d');
+
+      // --- Utilities ---
+      let toastTimer = null;
+      function showToast(msg) {
+        els.toast.textContent = msg;
+        els.toast.classList.remove('opacity-0');
+        els.toast.classList.add('opacity-100');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          els.toast.classList.remove('opacity-100');
+          els.toast.classList.add('opacity-0');
+        }, 2800);
+      }
+
+      function addLog(msg, type = 'info') {
+        const now = new Date();
+        const ts = now.toTimeString().slice(0, 8);
+        const div = document.createElement('div');
+        const color = type === 'error' ? 'text-rose-400' : type === 'success' ? 'text-emerald-400' : type === 'warn' ? 'text-amber-400' : 'text-zinc-300';
+        div.className = color;
+        div.textContent = `[${ts}] ${msg}`;
+        els.logBox.appendChild(div);
+        els.logBox.scrollTop = els.logBox.scrollHeight;
+      }
+
+      function formatDuration(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+        const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+        const s = String(totalSec % 60).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+      }
+
+      function saveSettings() {
+        try {
+          const data = {
+            ytEnabled: els.ytEnabled.checked,
+            ytUrl: els.ytUrl.value,
+            ytKey: els.ytKey.value,
+            fbEnabled: els.fbEnabled.checked,
+            fbUrl: els.fbUrl.value,
+            fbKey: els.fbKey.value,
+            relayUrl: els.relayUrl.value,
+            bannerTitle: els.bannerTitle.value,
+            bannerSubtitle: els.bannerSubtitle.value,
+            tickerText: els.tickerText.value
+          };
+          localStorage.setItem('livestream_pro_cfg_v1', JSON.stringify(data));
+        } catch (e) {}
+      }
+
+      function loadSettings() {
+        try {
+          const raw = localStorage.getItem('livestream_pro_cfg_v1');
+          if (!raw) return;
+          const d = JSON.parse(raw);
+          if (typeof d.ytEnabled === 'boolean') els.ytEnabled.checked = d.ytEnabled;
+          if (d.ytUrl) els.ytUrl.value = d.ytUrl;
+          if (d.ytKey) els.ytKey.value = d.ytKey;
+          if (typeof d.fbEnabled === 'boolean') els.fbEnabled.checked = d.fbEnabled;
+          if (d.fbUrl) els.fbUrl.value = d.fbUrl;
+          if (d.fbKey) els.fbKey.value = d.fbKey;
+          if (d.relayUrl) els.relayUrl.value = d.relayUrl;
+          if (d.bannerTitle) els.bannerTitle.value = d.bannerTitle;
+          if (d.bannerSubtitle) els.bannerSubtitle.value = d.bannerSubtitle;
+          if (d.tickerText) els.tickerText.value = d.tickerText;
+        } catch (e) {}
+      }
+
+      function getCanvasDimensions() {
+        const preset = QUALITY_PRESETS[els.qualitySelect.value] || QUALITY_PRESETS['720p'];
+        if (state.orientation === 'portrait') {
+          return { w: preset.h, h: preset.w, bps: preset.bps };
+        }
+        return { w: preset.w, h: preset.h, bps: preset.bps };
+      }
+
+      function syncCanvasSize() {
+        const dim = getCanvasDimensions();
+        els.canvas.width = dim.w;
+        els.canvas.height = dim.h;
+        if (state.orientation === 'portrait') {
+          els.stageWrapper.classList.remove('aspect-video');
+          els.stageWrapper.classList.add('aspect-[9/16]', 'max-w-[300px]');
+          els.orientationLabel.textContent = '9:16 Dọc';
+        } else {
+          els.stageWrapper.classList.remove('aspect-[9/16]', 'max-w-[300px]');
+          els.stageWrapper.classList.add('aspect-video');
+          els.orientationLabel.textContent = '16:9 Ngang';
+        }
+        els.stageResChip.textContent = `${els.qualitySelect.value} · ${els.fpsSelect.value}fps`;
+      }
+
+      function updatePlatformChips() {
+        els.stageYtChip.classList.toggle('hidden', !els.ytEnabled.checked);
+        els.stageFbChip.classList.toggle('hidden', !els.fbEnabled.checked);
+      }
+
+      function updateHeaderStatus(status, dotClass) {
+        els.headerStatusText.textContent = status;
+        els.headerStatusDot.className = `w-2 h-2 rounded-full ${dotClass}`;
+      }
+
+      // --- Camera & Audio Setup ---
+      function stopMediaTracks() {
+        if (state.stream) {
+          state.stream.getTracks().forEach(t => t.stop());
+          state.stream = null;
+        }
+        if (state.audioCtx) {
+          try { state.audioCtx.close(); } catch (e) {}
+          state.audioCtx = null;
+          state.analyser = null;
+          state.audioDest = null;
+        }
+      }
+
+      async function startCamera() {
+        stopMediaTracks();
+        syncCanvasSize();
+        const dim = getCanvasDimensions();
+        const fps = Number(els.fpsSelect.value) || 30;
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          addLog('Trình duyệt không hỗ trợ Camera trực tiếp. Chuyển sang chế độ Mô phỏng Studio.', 'warn');
+          startDemoMode();
+          return;
+        }
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: state.facingMode },
+              width: { ideal: dim.w },
+              height: { ideal: dim.h },
+              frameRate: { ideal: fps }
+            },
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+
+          state.stream = stream;
+          state.mode = 'camera';
+          els.video.srcObject = stream;
+          await els.video.play();
+
+          setupAudioAnalyser(stream);
+          els.emptyOverlay.classList.add('hidden');
+          els.stageTopBar.classList.remove('hidden');
+          els.stageSourceChip.textContent = state.facingMode === 'user' ? 'CAM TRƯỚC' : 'CAM SAU';
+          els.btnToggleCameraLabel.textContent = 'Tắt Camera';
+          updateHeaderStatus('Camera sẵn sàng', 'bg-emerald-500');
+          updatePlatformChips();
+          addLog(`Đã mở ${state.facingMode === 'user' ? 'Camera trước' : 'Camera sau'} (${dim.w}x${dim.h}).`, 'success');
+          startRenderLoop();
+        } catch (err) {
+          addLog(`Không thể truy cập camera (${err.name || 'Lỗi quyền'}). Đang bật Chế độ Thử để bạn trải nghiệm.`, 'warn');
+          showToast('Không có quyền camera — đã bật Chế độ Thử');
+          startDemoMode();
+        }
+      }
+
+      function setupAudioAnalyser(stream) {
+        try {
+          const AudioContextCls = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextCls) return;
+          const actx = new AudioContextCls();
+          const source = actx.createMediaStreamSource(stream);
+          const analyser = actx.createAnalyser();
+          analyser.fftSize = 256;
+          source.connect(analyser);
+          state.audioCtx = actx;
+          state.analyser = analyser;
+        } catch (e) {}
+      }
+
+      function startDemoMode() {
+        stopMediaTracks();
+        syncCanvasSize();
+        state.mode = 'demo';
+        els.emptyOverlay.classList.add('hidden');
+        els.stageTopBar.classList.remove('hidden');
+        els.stageSourceChip.textContent = 'STUDIO THỬ';
+        els.btnToggleCameraLabel.textContent = 'Tắt Nguồn';
+        updateHeaderStatus('Chế độ Mô phỏng', 'bg-amber-400');
+        updatePlatformChips();
+        addLog('Đã bật nguồn hình Mô phỏng Studio (có thể kiểm thử đồ họa & ghi hình).', 'info');
+        startRenderLoop();
+      }
+
+      function stopCamera() {
+        if (state.isLive) stopLive();
+        if (state.isRecording) stopRecording();
+        stopMediaTracks();
+        state.mode = 'idle';
+        if (state.rafId) {
+          cancelAnimationFrame(state.rafId);
+          state.rafId = null;
+        }
+        els.emptyOverlay.classList.remove('hidden');
+        els.stageTopBar.classList.add('hidden');
+        els.btnToggleCameraLabel.textContent = 'Bật Camera';
+        els.vuMeterBar.style.width = '0%';
+        updateHeaderStatus('Chờ bật camera', 'bg-zinc-500');
+        addLog('Đã tắt nguồn camera.', 'info');
+      }
+
+      // --- Canvas Compositor Render Loop ---
+      let lastFrameTs = performance.now();
+
+      function drawDemoFeed(w, h, now) {
+        const t = now * 0.001;
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, '#0f172a');
+        grad.addColorStop(0.5, '#1e1b4b');
+        grad.addColorStop(1, '#18181b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Animated studio light orbs
+        for (let i = 0; i < 4; i++) {
+          const cx = w * (0.2 + 0.2 * i) + Math.sin(t * (0.6 + i * 0.2)) * (w * 0.08);
+          const cy = h * 0.45 + Math.cos(t * (0.5 + i * 0.15)) * (h * 0.12);
+          const rad = Math.min(w, h) * 0.26;
+          const rg = ctx.createRadialGradient(cx, cy, 10, cx, cy, rad);
+          rg.addColorStop(0, i % 2 === 0 ? 'rgba(239,68,68,0.22)' : 'rgba(37,99,235,0.22)');
+          rg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = rg;
+          ctx.beginPath();
+          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Studio viewfinder grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(w / 3, 0); ctx.lineTo(w / 3, h);
+        ctx.moveTo((2 * w) / 3, 0); ctx.lineTo((2 * w) / 3, h);
+        ctx.moveTo(0, h / 3); ctx.lineTo(w, h / 3);
+        ctx.moveTo(0, (2 * h) / 3); ctx.lineTo(w, (2 * h) / 3);
+        ctx.stroke();
+
+        // Center label
+        ctx.fillStyle = 'rgba(255,255,255,0.82)';
+        ctx.font = `700 ${Math.round(Math.min(w, h) * 0.045)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('TÍN HIỆU MÔ PHỎNG CAMERA STUDIO', w / 2, h * 0.44);
+        ctx.fillStyle = 'rgba(161,161,170,0.9)';
+        ctx.font = `500 ${Math.round(Math.min(w, h) * 0.026)}px Inter, sans-serif`;
+        ctx.fillText(new Date().toLocaleTimeString('vi-VN'), w / 2, h * 0.50);
+        ctx.textAlign = 'left';
+      }
+
+      function drawCameraFeed(w, h) {
+        const vw = els.video.videoWidth || w;
+        const vh = els.video.videoHeight || h;
+        const videoRatio = vw / vh;
+        const canvasRatio = w / h;
+        let sx = 0, sy = 0, sw = vw, sh = vh;
+
+        if (videoRatio > canvasRatio) {
+          sw = vh * canvasRatio;
+          sx = (vw - sw) / 2;
+        } else {
+          sh = vw / canvasRatio;
+          sy = (vh - sh) / 2;
+        }
+
+        ctx.save();
+        if (state.mirror) {
+          ctx.translate(w, 0);
+          ctx.scale(-1, 1);
+        }
+        ctx.drawImage(els.video, sx, sy, sw, sh, 0, 0, w, h);
+        ctx.restore();
+      }
+
+      function drawOverlays(w, h, dt) {
+        if (state.cleanScreen) return;
+        const scale = Math.min(w, h) / 720;
+
+        // 1. LIVE Badge (Top-Left)
+        if (els.badgeEnabled.checked) {
+          const pad = 22 * scale;
+          const badgeH = 38 * scale;
+          const liveText = state.isLive ? `LIVE  ${formatDuration(Date.now() - state.liveStartTime)}` : 'PREVIEW';
+          ctx.font = `800 ${Math.round(16 * scale)}px Inter, sans-serif`;
+          const tw = ctx.measureText(liveText).width;
+          const bw = tw + 38 * scale;
+
+          ctx.fillStyle = state.isLive ? 'rgba(220, 38, 38, 0.92)' : 'rgba(24, 24, 27, 0.82)';
+          roundRect(ctx, pad, pad, bw, badgeH, 8 * scale);
+          ctx.fill();
+
+          ctx.fillStyle = state.isLive ? '#ffffff' : '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(pad + 15 * scale, pad + badgeH / 2, 5 * scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(liveText, pad + 28 * scale, pad + badgeH / 2 + 1);
+        }
+
+        // 2. Logo Overlay
+        if (state.logoImg) {
+          const targetW = Number(els.logoSize.value) * scale * 1.4;
+          const ratio = state.logoImg.height / (state.logoImg.width || 1);
+          const targetH = targetW * ratio;
+          const m = 24 * scale;
+          const pos = els.logoPos.value;
+          let lx = w - targetW - m;
+          let ly = m;
+          if (pos === 'tl') { lx = m; ly = m + (els.badgeEnabled.checked ? 50 * scale : 0); }
+          if (pos === 'bl') { lx = m; ly = h - targetH - (els.tickerEnabled.checked ? 56 * scale : m); }
+          if (pos === 'br') { lx = w - targetW - m; ly = h - targetH - (els.tickerEnabled.checked ? 56 * scale : m); }
+          ctx.drawImage(state.logoImg, lx, ly, targetW, targetH);
+        }
+
+        // 3. Lower-Third Title Banner
+        if (els.bannerEnabled.checked) {
+          const title = els.bannerTitle.value.trim();
+          const sub = els.bannerSubtitle.value.trim();
+          if (title || sub) {
+            const tickerOffset = els.tickerEnabled.checked ? 52 * scale : 20 * scale;
+            const boxH = (sub ? 74 : 48) * scale;
+            const bx = 24 * scale;
+            const by = h - tickerOffset - boxH - 10 * scale;
+
+            ctx.font = `800 ${Math.round(22 * scale)}px Inter, sans-serif`;
+            const w1 = ctx.measureText(title).width;
+            ctx.font = `500 ${Math.round(15 * scale)}px Inter, sans-serif`;
+            const w2 = ctx.measureText(sub).width;
+            const boxW = Math.min(w - 48 * scale, Math.max(w1, w2) + 46 * scale);
+
+            ctx.fillStyle = 'rgba(9, 9, 11, 0.82)';
+            roundRect(ctx, bx, by, boxW, boxH, 10 * scale);
+            ctx.fill();
+
+            ctx.fillStyle = state.accentColor;
+            roundRect(ctx, bx, by, 7 * scale, boxH, 4 * scale);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.textBaseline = 'top';
+            ctx.font = `800 ${Math.round(22 * scale)}px Inter, sans-serif`;
+            ctx.fillText(title, bx + 20 * scale, by + 11 * scale, boxW - 32 * scale);
+
+            if (sub) {
+              ctx.fillStyle = '#d4d4d8';
+              ctx.font = `500 ${Math.round(15 * scale)}px Inter, sans-serif`;
+              ctx.fillText(sub, bx + 20 * scale, by + 42 * scale, boxW - 32 * scale);
+            }
+          }
+        }
+
+        // 4. Scrolling Marquee Ticker
+        if (els.tickerEnabled.checked) {
+          const text = els.tickerText.value.trim();
+          if (text) {
+            const barH = 42 * scale;
+            const by = h - barH;
+            ctx.fillStyle = 'rgba(9, 9, 11, 0.88)';
+            ctx.fillRect(0, by, w, barH);
+            ctx.fillStyle = state.accentColor;
+            ctx.fillRect(0, by, w, 3 * scale);
+
+            ctx.font = `600 ${Math.round(17 * scale)}px Inter, sans-serif`;
+            const textW = ctx.measureText(text).width;
+            const speed = Number(els.tickerSpeed.value) * scale;
+            state.tickerX -= speed * dt;
+            if (state.tickerX < -textW - 40) {
+              state.tickerX = w + 40;
+            }
+            ctx.fillStyle = '#f4f4f5';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, state.tickerX, by + barH / 2 + 1);
+          }
+        }
+      }
+
+      function roundRect(c, x, y, w, h, r) {
+        c.beginPath();
+        c.moveTo(x + r, y);
+        c.arcTo(x + w, y, x + w, y + h, r);
+        c.arcTo(x + w, y + h, x, y + h, r);
+        c.arcTo(x, y + h, x, y, r);
+        c.arcTo(x, y, x + w, y, r);
+        c.closePath();
+      }
+
+      function updateAudioMeter(now) {
+        if (state.micMuted) {
+          els.vuMeterBar.style.width = '0%';
+          return;
+        }
+        if (state.mode === 'camera' && state.analyser) {
+          const data = new Uint8Array(state.analyser.frequencyBinCount);
+          state.analyser.getByteFrequencyData(data);
+          let sum = 0;
+          for (let i = 0; i < data.length; i++) sum += data[i];
+          const avg = sum / data.length;
+          const pct = Math.min(100, Math.round((avg / 140) * 100));
+          els.vuMeterBar.style.width = `${pct}%`;
+        } else if (state.mode === 'demo') {
+          const sim = 22 + Math.round(Math.abs(Math.sin(now * 0.005)) * 38);
+          els.vuMeterBar.style.width = `${sim}%`;
+        }
+      }
+
+      function startRenderLoop() {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+        lastFrameTs = performance.now();
+
+        function loop(now) {
+          const dt = Math.min(0.1, (now - lastFrameTs) / 1000);
+          lastFrameTs = now;
+          const w = els.canvas.width;
+          const h = els.canvas.height;
+
+          if (state.mode === 'camera' && els.video.readyState >= 2) {
+            drawCameraFeed(w, h);
+          } else {
+            drawDemoFeed(w, h, now);
+          }
+          drawOverlays(w, h, dt);
+          updateAudioMeter(now);
+
+          state.rafId = requestAnimationFrame(loop);
+        }
+        state.rafId = requestAnimationFrame(loop);
+      }
+
+      // --- Combined Output Stream (Canvas Video + Mic Audio) ---
+      function buildComposedStream() {
+        const fps = Number(els.fpsSelect.value) || 30;
+        const canvasStream = els.canvas.captureStream(fps);
+        const tracks = [...canvasStream.getVideoTracks()];
+        if (state.stream) {
+          state.stream.getAudioTracks().forEach(t => tracks.push(t));
+        }
+        return new MediaStream(tracks);
+      }
+
+      function pickMimeType() {
+        const candidates = [
+          'video/webm;codecs=h264,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm'
+        ];
+        for (const m of candidates) {
+          if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m;
+        }
+        return '';
+      }
+
+      // --- Dual-Platform Live Streaming ---
+      function startLive() {
+        if (state.mode === 'idle') {
+          showToast('Vui lòng bật Camera hoặc Chế độ Thử trước!');
+          return;
+        }
+        const useYt = els.ytEnabled.checked;
+        const useFb = els.fbEnabled.checked;
+        if (!useYt && !useFb) {
+          showToast('Hãy bật ít nhất 1 kênh (YouTube hoặc Facebook).');
+          return;
+        }
+
+        const relay = els.relayUrl.value.trim();
+        const ytKey = els.ytKey.value.trim();
+        const fbKey = els.fbKey.value.trim();
+
+        if (relay) {
+          if (!relay.startsWith('wss://')) {
+            showToast('URL Máy chủ Relay phải bắt đầu bằng wss://');
+            addLog('Lỗi: Địa chỉ Relay cần dùng giao thức bảo mật wss://', 'error');
+            return;
+          }
+          if ((useYt && !ytKey) || (useFb && !fbKey)) {
+            showToast('Vui lòng nhập đủ Khóa luồng cho các kênh đã bật.');
+            return;
+          }
+          connectRelayAndStream(relay, {
+            youtube: useYt ? { url: els.ytUrl.value.trim(), key: ytKey } : null,
+            facebook: useFb ? { url: els.fbUrl.value.trim(), key: fbKey } : null,
+            fps: Number(els.fpsSelect.value) || 30,
+            bitrate: getCanvasDimensions().bps
+          });
+        } else {
+          // Preview / Simulated Live Broadcast (without external relay)
+          beginLiveUI(false);
+          addLog('Đang chạy phiên Phát thử cục bộ (chưa nhập URL Relay wss://).', 'warn');
+          showToast('Đang phát thử cục bộ — nhập WSS Relay để lên sóng thật');
+        }
+      }
+
+      function connectRelayAndStream(relayUrl, config) {
+        addLog(`Đang kết nối Máy chủ Relay: ${relayUrl} ...`, 'info');
+        try {
+          const ws = new WebSocket(relayUrl);
+          state.ws = ws;
+
+          ws.onopen = () => {
+            addLog('Đã kết nối Relay thành công! Đang khởi chạy luồng YouTube/Facebook...', 'success');
+            ws.send(JSON.stringify({ type: 'start', config }));
+            beginLiveUI(true);
+            startLiveMediaRecorder(ws, config.bitrate);
+          };
+
+          ws.onmessage = (ev) => {
+            try {
+              const msg = JSON.parse(ev.data);
+              if (msg.log) addLog(`[Relay] ${msg.log}`, msg.level || 'info');
+            } catch (e) {}
+          };
+
+          ws.onerror = () => {
+            addLog('Không thể kết nối tới Máy chủ Relay. Kiểm tra lại địa chỉ wss:// và trạng thái server.', 'error');
+            showToast('Lỗi kết nối Máy chủ Relay');
+            stopLive();
+          };
+
+          ws.onclose = () => {
+            if (state.isLive) {
+              addLog('Kết nối Relay đã đóng.', 'warn');
+              stopLive();
+            }
+          };
+        } catch (err) {
+          addLog(`Lỗi khởi tạo kết nối: ${err.message}`, 'error');
+          showToast('Lỗi khởi tạo kết nối Relay');
+        }
+      }
+
+      function startLiveMediaRecorder(ws, bps) {
+        const composed = buildComposedStream();
+        const mime = pickMimeType();
+        const opts = mime ? { mimeType: mime, videoBitsPerSecond: bps } : { videoBitsPerSecond: bps };
+        const rec = new MediaRecorder(composed, opts);
+        state.liveRecorder = rec;
+        state.bytesSentWindow = 0;
+        state.lastBitrateTick = Date.now();
+
+        rec.ondataavailable = (ev) => {
+          if (ev.data && ev.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+            ws.send(ev.data);
+            state.bytesSentWindow += ev.data.size;
+            const now = Date.now();
+            if (now - state.lastBitrateTick >= 1000) {
+              const kbps = Math.round((state.bytesSentWindow * 8) / (now - state.lastBitrateTick));
+              els.bitrateReadout.textContent = `${kbps.toLocaleString('vi-VN')} kbps`;
+              state.bytesSentWindow = 0;
+              state.lastBitrateTick = now;
+            }
+          }
+        };
+        rec.start(500);
+      }
+
+      function beginLiveUI(isRealRelay) {
+        state.isLive = true;
+        state.liveStartTime = Date.now();
+        els.liveTimerBadge.classList.remove('hidden');
+        els.liveTimerBadge.classList.add('flex');
+        els.goLiveText.textContent = 'DỪNG PHÁT LIVE';
+        els.btnGoLive.classList.remove('bg-red-600', 'hover:bg-red-500');
+        els.btnGoLive.classList.add('bg-zinc-800', 'hover:bg-zinc-700', 'border', 'border-red-500/60');
+        updateHeaderStatus(isRealRelay ? 'ĐANG PHÁT TRỰC TIẾP' : 'ĐANG PHÁT THỬ', 'bg-red-500 pulse-live');
+
+        if (state.timerInterval) clearInterval(state.timerInterval);
+        state.timerInterval = setInterval(() => {
+          els.liveTimerText.textContent = formatDuration(Date.now() - state.liveStartTime);
+          if (!isRealRelay) {
+            const targetKbps = Math.round(getCanvasDimensions().bps / 1000);
+            const jitter = Math.round((Math.random() - 0.5) * 180);
+            els.bitrateReadout.textContent = `${targetKbps + jitter} kbps (thử)`;
+          }
+        }, 1000);
+      }
+
+      function stopLive() {
+        state.isLive = false;
+        if (state.timerInterval) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+        }
+        if (state.liveRecorder && state.liveRecorder.state !== 'inactive') {
+          try { state.liveRecorder.stop(); } catch (e) {}
+        }
+        state.liveRecorder = null;
+        if (state.ws) {
+          try {
+            if (state.ws.readyState === WebSocket.OPEN) {
+              state.ws.send(JSON.stringify({ type: 'stop' }));
+            }
+            state.ws.close();
+          } catch (e) {}
+          state.ws = null;
+        }
+        els.liveTimerBadge.classList.add('hidden');
+        els.liveTimerBadge.classList.remove('flex');
+        els.goLiveText.textContent = 'BẮT ĐẦU PHÁT LIVE';
+        els.btnGoLive.classList.add('bg-red-600', 'hover:bg-red-500');
+        els.btnGoLive.classList.remove('bg-zinc-800', 'hover:bg-zinc-700', 'border', 'border-red-500/60');
+        els.bitrateReadout.textContent = '0 kbps';
+        updateHeaderStatus(state.mode === 'camera' ? 'Camera sẵn sàng' : 'Chế độ Mô phỏng', state.mode === 'camera' ? 'bg-emerald-500' : 'bg-amber-400');
+        addLog('Đã dừng phiên phát trực tiếp.', 'info');
+      }
+
+      // --- Local Recording ---
+      function startRecording() {
+        if (state.mode === 'idle') {
+          showToast('Hãy bật Camera hoặc Chế độ Thử trước khi ghi hình.');
+          return;
+        }
+        if (typeof MediaRecorder === 'undefined') {
+          showToast('Trình duyệt không hỗ trợ ghi hình MediaRecorder.');
+          return;
+        }
+        try {
+          const composed = buildComposedStream();
+          const mime = pickMimeType();
+          const rec = new MediaRecorder(composed, mime ? { mimeType: mime } : undefined);
+          state.recordedChunks = [];
+          rec.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+          };
+          rec.onstop = () => {
+            const blob = new Blob(state.recordedChunks, { type: mime || 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `livestream-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+            addLog(`Đã lưu tệp video ghi hình (${(blob.size / (1024 * 1024)).toFixed(2)} MB).`, 'success');
+            showToast('Đã tải video ghi hình xuống máy!');
+          };
+          rec.start(1000);
+          state.localRecorder = rec;
+          state.isRecording = true;
+          els.recDot.classList.add('pulse-live');
+          els.recText.textContent = 'Dừng & Lưu';
+          addLog('Bắt đầu ghi hình dự phòng vào bộ nhớ máy.', 'info');
+        } catch (err) {
+          addLog(`Không thể ghi hình: ${err.message}`, 'error');
+        }
+      }
+
+      function stopRecording() {
+        if (state.localRecorder && state.localRecorder.state !== 'inactive') {
+          state.localRecorder.stop();
+        }
+        state.localRecorder = null;
+        state.isRecording = false;
+        els.recDot.classList.remove('pulse-live');
+        els.recText.textContent = 'Ghi Hình Máy';
+      }
+
+      // --- Event Listeners ---
+      els.btnStartCamHero.addEventListener('click', startCamera);
+      els.btnStartDemoHero.addEventListener('click', startDemoMode);
+      els.btnToggleCamera.addEventListener('click', () => {
+        if (state.mode === 'idle') startCamera();
+        else stopCamera();
+      });
+
+      els.btnSwitchCam.addEventListener('click', () => {
+        state.facingMode = state.facingMode === 'environment' ? 'user' : 'environment';
+        if (state.mode === 'camera') {
+          startCamera();
+        } else {
+          showToast(`Đã chọn ${state.facingMode === 'user' ? 'Camera Trước' : 'Camera Sau'}`);
+        }
+      });
+
+      els.btnOrientation.addEventListener('click', () => {
+        state.orientation = state.orientation === 'landscape' ? 'portrait' : 'landscape';
+        syncCanvasSize();
+        showToast(state.orientation === 'portrait' ? 'Khung hình 9:16 Dọc' : 'Khung hình 16:9 Ngang');
+      });
+
+      els.btnMirror.addEventListener('click', () => {
+        state.mirror = !state.mirror;
+        els.mirrorLabel.textContent = `Lật Gương: ${state.mirror ? 'Bật' : 'Tắt'}`;
+      });
+
+      els.btnCleanScreen.addEventListener('click', () => {
+        state.cleanScreen = !state.cleanScreen;
+        els.cleanScreenLabel.textContent = `Màn Sạch: ${state.cleanScreen ? 'Bật' : 'Tắt'}`;
+      });
+
+      els.btnMuteMic.addEventListener('click', () => {
+        state.micMuted = !state.micMuted;
+        if (state.stream) {
+          state.stream.getAudioTracks().forEach(t => { t.enabled = !state.micMuted; });
+        }
+        els.micStatusLabel.textContent = state.micMuted ? 'Micro: Đã tắt tiếng' : 'Micro: Đang mở';
+        els.micIcon.setAttribute('data-lucide', state.micMuted ? 'mic-off' : 'mic');
+        els.micIcon.className = `w-4 h-4 ${state.micMuted ? 'text-rose-400' : 'text-emerald-400'}`;
+        if (window.lucide) lucide.createIcons();
+      });
+
+      els.btnGoLive.addEventListener('click', () => {
+        if (state.isLive) stopLive();
+        else startLive();
+      });
+
+      els.btnRecord.addEventListener('click', () => {
+        if (state.isRecording) stopRecording();
+        else startRecording();
+      });
+
+      els.btnClearLog.addEventListener('click', () => {
+        els.logBox.innerHTML = '';
+        addLog('Đã làm mới nhật ký.', 'info');
+      });
+
+      // Tabs
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-tab');
+          document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('bg-zinc-800', 'text-white', 'shadow');
+            b.classList.add('text-zinc-400');
+          });
+          btn.classList.add('bg-zinc-800', 'text-white', 'shadow');
+          btn.classList.remove('text-zinc-400');
+          document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+          document.getElementById(`tab-${target}`).classList.remove('hidden');
+        });
+      });
+
+      // Secret key eye toggles
+      document.querySelectorAll('[data-toggle-secret]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const input = document.getElementById(btn.getAttribute('data-toggle-secret'));
+          input.type = input.type === 'password' ? 'text' : 'password';
+        });
+      });
+
+      // Accent colors
+      document.querySelectorAll('.accent-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.accentColor = btn.getAttribute('data-accent');
+          document.querySelectorAll('.accent-btn').forEach(b => b.classList.remove('ring-2', 'ring-white'));
+          btn.classList.add('ring-2', 'ring-white');
+        });
+      });
+
+      // Logo Upload
+      els.logoInput.addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            state.logoImg = img;
+            els.btnRemoveLogo.classList.remove('hidden');
+            showToast('Đã gắn Logo lên khung hình!');
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      els.btnRemoveLogo.addEventListener('click', () => {
+        state.logoImg = null;
+        els.logoInput.value = '';
+        els.btnRemoveLogo.classList.add('hidden');
+        showToast('Đã gỡ Logo');
+      });
+
+      // Copy Docker command
+      els.btnCopyDockerCmd.addEventListener('click', () => {
+        const text = els.dockerCmdText.textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép lệnh Docker!'));
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          showToast('Đã sao chép lệnh Docker!');
+        }
+      });
+
+      // Persist form inputs
+      [els.ytEnabled, els.ytUrl, els.ytKey, els.fbEnabled, els.fbUrl, els.fbKey, els.relayUrl, els.bannerTitle, els.bannerSubtitle, els.tickerText].forEach(el => {
+        el.addEventListener('input', () => {
+          saveSettings();
+          updatePlatformChips();
+        });
+        el.addEventListener('change', () => {
+          saveSettings();
+          updatePlatformChips();
+        });
+      });
+
+      [els.qualitySelect, els.fpsSelect].forEach(el => {
+        el.addEventListener('change', () => {
+          syncCanvasSize();
+          if (state.mode === 'camera') startCamera();
+        });
+      });
+
+      // Init
+      loadSettings();
+      syncCanvasSize();
+      updatePlatformChips();
+      if (window.lucide) lucide.createIcons();
+    })();
+  </script>
+</body>
+</html>
