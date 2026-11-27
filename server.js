@@ -92,7 +92,7 @@ wss.on('connection', (ws) => {
         // --- Điều khiển luồng FFmpeg RTMP ---
         if (msg.type === 'start') {
           stopFfmpeg();
-          const { youtube, facebook, fps = 30, bitrate = 2500000 } = msg.config || {};
+          const { youtube, facebook, fps = 30, bitrate = 2200000, isH264 = false, isAac = false } = msg.config || {};
           const outputs = [];
 
           if (youtube && youtube.url && youtube.key) {
@@ -112,30 +112,43 @@ wss.on('connection', (ws) => {
           const maxrateK = `${Math.round((bitrate * 1.15) / 1000)}k`;
           const bufsizeK = `${Math.round((bitrate * 2) / 1000)}k`;
 
+          const videoArgs = isH264
+            ? ['-c:v', 'copy']
+            : [
+                '-vf', 'scale=-2:480',
+                '-c:v', 'libx264',
+                '-preset', 'ultrafast',
+                '-tune', 'zerolatency',
+                '-pix_fmt', 'yuv420p',
+                '-vsync', '1',
+                '-r', String(fps),
+                '-g', String(gop),
+                '-keyint_min', String(gop),
+                '-sc_threshold', '0',
+                '-b:v', videoBitrateK,
+                '-maxrate', maxrateK,
+                '-bufsize', bufsizeK,
+                '-threads', '0'
+              ];
+
+          const audioArgs = isAac
+            ? ['-c:a', 'copy']
+            : [
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-ac', '2',
+                '-af', 'aresample=async=1:min_hard_comp=0.100000:first_pts=0'
+              ];
+
           const args = [
             '-fflags', '+genpts+nobuffer',
             '-flags', 'low_delay',
             '-analyzeduration', '500000',
             '-probesize', '500000',
             '-i', 'pipe:0',
-            '-c:v', 'libx264',
-            '-preset', 'ultrafast',
-            '-tune', 'zerolatency',
-            '-pix_fmt', 'yuv420p',
-            '-vsync', '1',
-            '-r', String(fps),
-            '-g', String(gop),
-            '-keyint_min', String(gop),
-            '-sc_threshold', '0',
-            '-b:v', videoBitrateK,
-            '-maxrate', maxrateK,
-            '-bufsize', bufsizeK,
-            '-threads', '0',
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-ac', '2',
-            '-af', 'aresample=async=1:min_hard_comp=0.100000:first_pts=0',
+            ...videoArgs,
+            ...audioArgs,
             '-flvflags', 'no_duration_filesize',
             '-max_muxing_queue_size', '2048',
             '-flags', '+global_header',
@@ -145,7 +158,7 @@ wss.on('connection', (ws) => {
             outputs.join('|')
           ];
 
-          sendLog(`Đang khởi chạy FFmpeg phát đồng thời tới ${outputs.length} nền tảng...`, 'success');
+          sendLog(`Đang phát tới ${outputs.length} nền tảng (${isH264 ? 'Chế độ H.264 siêu nhẹ - 0% CPU video' : 'Chế độ nén nhanh 480p'})...`, 'success');
           ffmpeg = spawn('ffmpeg', args);
 
           ffmpeg.stderr.on('data', (chunk) => {
