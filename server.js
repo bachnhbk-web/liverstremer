@@ -142,15 +142,18 @@ wss.on('connection', (ws) => {
               ];
 
           const args = [
-            '-fflags', '+genpts+nobuffer',
+            '-fflags', '+genpts+nobuffer+discardcorrupt',
             '-flags', 'low_delay',
-            '-analyzeduration', '500000',
-            '-probesize', '500000',
+            '-analyzeduration', '100000',
+            '-probesize', '100000',
             '-i', 'pipe:0',
             ...videoArgs,
             ...audioArgs,
+            '-flush_packets', '1',
+            '-muxdelay', '0',
+            '-muxpreload', '0',
             '-flvflags', 'no_duration_filesize',
-            '-max_muxing_queue_size', '2048',
+            '-max_muxing_queue_size', '256',
             '-flags', '+global_header',
             '-f', 'tee',
             '-map', '0:v',
@@ -182,8 +185,11 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    // Dữ liệu video/audio nhị phân từ trình duyệt điện thoại
+    // Dữ liệu video/audio nhị phân từ trình duyệt điện thoại (chống dồn hàng đợi gây trễ 1 phút)
     if (ffmpeg && ffmpeg.stdin.writable) {
+      if (ffmpeg.stdin.writableLength > 512 * 1024) {
+        return;
+      }
       ffmpeg.stdin.write(data);
     }
   });
