@@ -8,6 +8,7 @@
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     body {
@@ -31,15 +32,201 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     input[type="range"] { accent-color: #10b981; }
+
+    /* Giao diện Quay Ngang Điện Thoại: vừa khít 100% mọi kích thước màn hình (nhỏ đến lớn) */
+    @media (orientation: landscape) and (max-height: 600px) {
+      html, body {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
+      }
+      body {
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+      }
+      #appHeader {
+        padding: 4px 10px !important;
+        min-height: 38px;
+      }
+      #appHeader .brand-icon {
+        width: 26px !important;
+        height: 26px !important;
+        border-radius: 7px !important;
+      }
+      #appHeader .brand-icon svg {
+        width: 15px !important;
+        height: 15px !important;
+      }
+      #appHeader h1 {
+        font-size: 12px !important;
+        line-height: 1.1 !important;
+      }
+      #appHeader #headerStatusText {
+        font-size: 10px !important;
+      }
+      #appMain {
+        display: flex !important;
+        flex-direction: row !important;
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        height: calc(100dvh - 40px) !important;
+        max-width: 100% !important;
+        padding: 4px 6px !important;
+        gap: 6px !important;
+        overflow: hidden !important;
+      }
+      #leftStageCol {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+      }
+      #stageCard {
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border-radius: 10px !important;
+      }
+      #stageWrapper {
+        flex: 1 1 0% !important;
+        min-height: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        aspect-ratio: auto !important;
+      }
+      #audioMeterBar {
+        display: none !important;
+      }
+      #quickCamActions {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+        flex-shrink: 0 !important;
+      }
+      #quickCamActions button {
+        flex: 1 1 0% !important;
+        padding: 5px 4px !important;
+        font-size: 10px !important;
+        border-radius: 8px !important;
+        white-space: nowrap !important;
+      }
+      #quickCamActions svg {
+        width: 13px !important;
+        height: 13px !important;
+      }
+      #broadcastBar {
+        flex-direction: row !important;
+        padding: 4px !important;
+        gap: 6px !important;
+        border-radius: 10px !important;
+        flex-shrink: 0 !important;
+      }
+      #broadcastBar button {
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        border-radius: 8px !important;
+      }
+      #logPanel {
+        display: none !important;
+      }
+      #rightControlCol {
+        width: clamp(230px, 34vw, 320px) !important;
+        flex-shrink: 0 !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        padding-bottom: 10px !important;
+        gap: 6px !important;
+      }
+      #rightControlCol.landscape-collapsed {
+        display: none !important;
+      }
+      #btnToggleSidePanel {
+        display: inline-flex !important;
+      }
+      #liveScoreHud {
+        bottom: 6px !important;
+        right: 6px !important;
+      }
+    }
+
+    /* Chế độ Toàn Màn Hình Gọn: chỉ giữ đúng 2 nút Ghi điểm & Đổi giao to rõ */
+    body.fullscreen-live-mode {
+      height: 100dvh !important;
+      max-height: 100dvh !important;
+      overflow: hidden !important;
+      background: #000 !important;
+    }
+    body.fullscreen-live-mode #appHeader,
+    body.fullscreen-live-mode #audioMeterBar,
+    body.fullscreen-live-mode #quickCamActions,
+    body.fullscreen-live-mode #broadcastBar,
+    body.fullscreen-live-mode #logPanel,
+    body.fullscreen-live-mode #rightControlCol,
+    body.fullscreen-live-mode #stageTopBar,
+    body.fullscreen-live-mode #hudMetaRow,
+    body.fullscreen-live-mode #btnHudUndo {
+      display: none !important;
+    }
+    body.fullscreen-live-mode #appMain {
+      display: flex !important;
+      flex-direction: column !important;
+      max-width: 100% !important;
+      width: 100vw !important;
+      height: 100dvh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      gap: 0 !important;
+    }
+    body.fullscreen-live-mode #leftStageCol,
+    body.fullscreen-live-mode #stageCard,
+    body.fullscreen-live-mode #stageWrapper {
+      width: 100% !important;
+      height: 100% !important;
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      border-radius: 0 !important;
+      border: none !important;
+      aspect-ratio: auto !important;
+    }
+    body.fullscreen-live-mode #btnExitFullscreen {
+      display: inline-flex !important;
+    }
+    body.fullscreen-live-mode #liveScoreHud {
+      bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+      right: max(16px, env(safe-area-inset-right, 16px)) !important;
+      left: auto !important;
+    }
+    body.fullscreen-live-mode #hudButtonsRow {
+      display: flex !important;
+      gap: 12px !important;
+      padding: 8px 10px !important;
+      border-radius: 16px !important;
+      background: rgba(0, 0, 0, 0.55) !important;
+    }
+    body.fullscreen-live-mode #btnHudScorePoint,
+    body.fullscreen-live-mode #btnHudSwitchServe {
+      padding: 14px 24px !important;
+      font-size: 16px !important;
+      line-height: 1.1 !important;
+      border-radius: 12px !important;
+      min-width: 126px !important;
+      justify-content: center !important;
+      letter-spacing: 0.01em !important;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-emerald-500/30">
 
   <!-- Top Header -->
-  <header class="sticky top-0 z-30 glass-panel border-b border-zinc-800 px-3 py-2.5">
+  <header id="appHeader" class="sticky top-0 z-30 glass-panel border-b border-zinc-800 px-3 py-2.5">
     <div class="max-w-6xl mx-auto flex items-center justify-between gap-2">
       <div class="flex items-center gap-2.5 min-w-0">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/30">
+        <div class="brand-icon w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-900/30">
           <i data-lucide="radio" class="w-5 h-5 text-white"></i>
         </div>
         <div class="min-w-0">
@@ -56,6 +243,10 @@
           <span class="w-2 h-2 rounded-full bg-red-500 pulse-live"></span>
           <span id="liveTimerText">00:00:00</span>
         </div>
+        <button id="btnToggleSidePanel" type="button" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs font-semibold text-amber-300 border border-zinc-700 transition" title="Mở toàn màn hình gọn (chỉ còn nút Ghi điểm & Đổi giao)">
+          <i data-lucide="panel-right-close" class="w-3.5 h-3.5"></i>
+          <span id="sidePanelToggleLabel">Toàn Màn</span>
+        </button>
         <button id="btnToggleCamera" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs font-semibold text-zinc-100 border border-zinc-700 transition">
           <i data-lucide="video" class="w-4 h-4 text-emerald-400"></i>
           <span id="btnToggleCameraLabel">Bật Camera</span>
@@ -65,11 +256,11 @@
   </header>
 
   <!-- Main Workspace -->
-  <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
+  <main id="appMain" class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
 
     <!-- Left Column: Live Monitor & Broadcast Controls -->
-    <section class="lg:col-span-7 flex flex-col gap-3">
-      <div class="relative rounded-2xl overflow-hidden bg-black border border-zinc-800 shadow-2xl">
+    <section id="leftStageCol" class="lg:col-span-7 flex flex-col gap-3">
+      <div id="stageCard" class="relative rounded-2xl overflow-hidden bg-black border border-zinc-800 shadow-2xl">
         <div id="stageWrapper" class="relative w-full aspect-video bg-zinc-950 flex items-center justify-center transition-all duration-300 mx-auto">
           <canvas id="studioCanvas" class="w-full h-full object-contain block"></canvas>
           <video id="cameraVideo" class="hidden" autoplay playsinline muted></video>
@@ -106,10 +297,38 @@
               <span id="stageFbChip" class="hidden px-2 py-0.5 rounded-md bg-blue-600/90 text-[10px] font-bold text-white">FB</span>
             </div>
           </div>
+
+          <!-- Nút thoát chế độ Toàn màn hình (chỉ hiện khi đang Fullscreen, KHÔNG lên sóng Live) -->
+          <button id="btnExitFullscreen" type="button" class="hidden absolute top-3 right-3 z-30 items-center gap-1 px-3 py-1.5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-md border border-white/20 text-xs font-bold text-white shadow-lg active:scale-95 transition">
+            ✕ Thoát
+          </button>
+
+          <!-- On-Screen Operator Control HUD (Chỉ hiện trên màn hình máy, KHÔNG lên sóng Live) -->
+          <div id="liveScoreHud" class="absolute bottom-2.5 right-2.5 z-20 flex flex-col items-end gap-1 select-none">
+            <div id="hudMetaRow" class="flex items-center gap-1.5">
+              <span id="hudServeStatus" class="px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md border border-white/15 text-[10px] font-bold text-amber-300 shadow">
+                Giao: Đội 1 · T2
+              </span>
+              <button id="btnToggleHud" type="button" class="px-2 py-0.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/15 text-[10px] font-semibold text-zinc-200 active:scale-95 transition" title="Ẩn/Hiện nút bấm điểm trên màn hình">
+                Ẩn nút
+              </button>
+            </div>
+            <div id="hudButtonsRow" class="flex items-center gap-1.5 bg-black/65 backdrop-blur-md p-1.5 rounded-xl border border-white/15 shadow-2xl">
+              <button id="btnHudScorePoint" type="button" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-xs font-extrabold text-white shadow flex items-center gap-1 transition">
+                <span>Ghi điểm</span>
+              </button>
+              <button id="btnHudSwitchServe" type="button" class="px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 active:scale-95 text-xs font-extrabold text-zinc-950 shadow flex items-center gap-1 transition">
+                <span id="hudSwitchServeLabel">Đổi giao</span>
+              </button>
+              <button id="btnHudUndo" type="button" class="px-2.5 py-2 rounded-lg bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-xs font-bold text-zinc-200 border border-white/10 transition" title="Hoàn tác 1 bước">
+                ↺
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Audio VU Meter & Mic Source Selector -->
-        <div class="px-3 py-2 bg-zinc-950 border-t border-zinc-800/80 space-y-2">
+        <div id="audioMeterBar" class="px-3 py-2 bg-zinc-950 border-t border-zinc-800/80 space-y-2">
           <div class="flex items-center gap-3">
             <button id="btnMuteMic" type="button" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition" title="Bật/Tắt Mic">
               <i id="micIcon" data-lucide="mic" class="w-4 h-4 text-emerald-400"></i>
@@ -136,7 +355,7 @@
       </div>
 
       <!-- Quick Camera Actions -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div id="quickCamActions" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <button id="btnSwitchCam" type="button" class="flex items-center justify-center gap-1.5 py-2.5 px-2.5 rounded-xl glass-panel hover:bg-zinc-800 active:scale-95 text-xs font-semibold transition">
           <i data-lucide="refresh-cw" class="w-4 h-4 text-sky-400"></i>
           Đổi Cam
@@ -160,7 +379,7 @@
       </div>
 
       <!-- Broadcast & Record Buttons -->
-      <div class="glass-panel rounded-2xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+      <div id="broadcastBar" class="glass-panel rounded-2xl p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
         <button id="btnGoLive" type="button" class="flex-1 flex items-center justify-center gap-2 py-3.5 px-5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-[0.99] text-sm sm:text-base font-bold text-white shadow-lg shadow-red-900/40 transition">
           <i data-lucide="radio" class="w-5 h-5"></i>
           <span id="goLiveText">BẮT ĐẦU PHÁT LIVE</span>
@@ -172,7 +391,7 @@
       </div>
 
       <!-- Log -->
-      <div class="glass-panel rounded-2xl p-3">
+      <div id="logPanel" class="glass-panel rounded-2xl p-3">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
             <i data-lucide="terminal" class="w-3.5 h-3.5 text-zinc-400"></i>
@@ -187,7 +406,7 @@
     </section>
 
     <!-- Right Column: 4 Tabs (Scoreboard, Platforms, Graphics, Relay) -->
-    <section class="lg:col-span-5 flex flex-col gap-3">
+    <section id="rightControlCol" class="lg:col-span-5 flex flex-col gap-3">
       <div class="grid grid-cols-4 gap-1 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
         <button type="button" data-tab="scoreboard" class="tab-btn py-2 px-1.5 rounded-lg text-[11px] sm:text-xs font-semibold bg-zinc-800 text-white shadow transition flex items-center justify-center gap-1">
           <i data-lucide="trophy" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -248,7 +467,11 @@
             <button id="btnConnectRoom" type="button" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white active:scale-95 transition">Nối Sân</button>
             <button id="btnCopyRefLink" type="button" class="flex-1 px-2.5 py-2 rounded-lg bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-xs font-semibold text-sky-300 active:scale-95 transition flex items-center justify-center gap-1">
               <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
-              Gửi Link Đếm Điểm
+              Gửi Link
+            </button>
+            <button id="btnShowRefQr" type="button" class="px-2.5 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300 active:scale-95 transition flex items-center justify-center gap-1" title="Hiện mã QR để máy khác quét vào đếm điểm">
+              <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+              Mã QR
             </button>
           </div>
           <p class="text-[11px] text-zinc-400">
@@ -258,13 +481,25 @@
 
         <!-- Match Info & Manual Score Control -->
         <div class="glass-panel rounded-2xl p-3.5 space-y-2.5">
-          <div class="flex items-center justify-between gap-2">
-            <input id="matchCategory" type="text" value="Đôi Nam · Chung Kết" placeholder="Nội dung thi đấu..." class="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500" />
-            <select id="scorePos" class="px-2.5 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200">
-              <option value="tl" selected>Góc Trái Trên</option>
-              <option value="tr">Góc Phải Trên</option>
-              <option value="bl">Góc Trái Dưới</option>
-            </select>
+          <div class="grid grid-cols-1 gap-2">
+            <input id="tournamentName" type="text" value="GIẢI PICKLEBALL OPEN" placeholder="Tên giải đấu (dòng trên cùng)..." class="w-full px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-bold uppercase text-amber-300 focus:outline-none focus:border-amber-500" />
+            <div class="flex items-center justify-between gap-2">
+              <input id="matchCategory" type="text" value="BÁN KẾT ĐÔI NAM PRO" placeholder="Nội dung / Vòng đấu (dòng dưới cùng)..." class="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500" />
+              <select id="scorePos" class="px-2 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-200">
+                <option value="tl" selected>Trái Trên</option>
+                <option value="tr">Phải Trên</option>
+                <option value="bl">Trái Dưới</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-semibold text-zinc-400">Màu bảng điểm:</span>
+              <select id="scoreTheme" class="flex-1 px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs font-semibold text-sky-300">
+                <option value="navy-gold" selected>Xanh Navy · Vàng Gold (Truyền hình)</option>
+                <option value="emerald-orange">Xanh Ngọc · Cam Cháy</option>
+                <option value="crimson-navy">Đỏ Đô · Xanh Đêm</option>
+                <option value="violet-cyan">Tím Đậm · Xanh Cyan</option>
+              </select>
+            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-2.5">
@@ -277,8 +512,13 @@
                 <button id="btnLocalP1" type="button" class="w-9 h-8 rounded-lg bg-emerald-600 font-bold text-sm text-white">+1</button>
               </div>
               <div class="flex items-center justify-between text-[11px] text-zinc-400">
-                <span>Set: <strong id="localSet1" class="text-white">0</strong></span>
-                <button id="btnLocalServe1" type="button" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">Giao bóng</button>
+                <div class="flex items-center gap-1">
+                  <span>Set:</span>
+                  <button id="btnLocalSetM1" type="button" class="w-5 h-5 rounded bg-zinc-800 text-zinc-200 font-bold">-</button>
+                  <strong id="localSet1" class="text-white w-3 text-center">0</strong>
+                  <button id="btnLocalSetP1" type="button" class="w-5 h-5 rounded bg-zinc-800 text-zinc-200 font-bold">+</button>
+                </div>
+                <button id="btnLocalServe1" type="button" class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">Giao</button>
               </div>
             </div>
 
@@ -291,19 +531,35 @@
                 <button id="btnLocalP2" type="button" class="w-9 h-8 rounded-lg bg-sky-600 font-bold text-sm text-white">+1</button>
               </div>
               <div class="flex items-center justify-between text-[11px] text-zinc-400">
-                <span>Set: <strong id="localSet2" class="text-white">0</strong></span>
-                <button id="btnLocalServe2" type="button" class="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-semibold">Giao bóng</button>
+                <div class="flex items-center gap-1">
+                  <span>Set:</span>
+                  <button id="btnLocalSetM2" type="button" class="w-5 h-5 rounded bg-zinc-800 text-zinc-200 font-bold">-</button>
+                  <strong id="localSet2" class="text-white w-3 text-center">0</strong>
+                  <button id="btnLocalSetP2" type="button" class="w-5 h-5 rounded bg-zinc-800 text-zinc-200 font-bold">+</button>
+                </div>
+                <button id="btnLocalServe2" type="button" class="px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-semibold">Giao</button>
               </div>
             </div>
           </div>
 
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="btnAutoScorePoint" type="button" class="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-xs font-extrabold text-white shadow transition">
+              Ghi điểm
+            </button>
+            <button id="btnAutoSwitchServe" type="button" class="py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-xs font-extrabold text-zinc-950 shadow transition">
+              Đổi giao
+            </button>
+          </div>
           <div class="flex items-center justify-between gap-2 pt-1">
             <div class="flex items-center gap-1.5">
               <span class="text-[11px] text-zinc-400">Lượt tay:</span>
               <button id="btnLocalHand1" type="button" class="px-2.5 py-1 rounded-lg bg-zinc-800 text-[11px] font-bold">TAY 1</button>
               <button id="btnLocalHand2" type="button" class="px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 text-[11px] font-bold">TAY 2</button>
             </div>
-            <button id="btnLocalReset" type="button" class="px-3 py-1 rounded-lg bg-rose-600/20 text-rose-300 text-[11px] font-bold">Reset 0-0</button>
+            <div class="flex items-center gap-1.5">
+              <button id="btnLocalUndo" type="button" class="px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-200 text-[11px] font-bold">↺ Hoàn tác</button>
+              <button id="btnLocalReset" type="button" class="px-2.5 py-1 rounded-lg bg-rose-600/20 text-rose-300 text-[11px] font-bold">Reset 0-0</button>
+            </div>
           </div>
         </div>
       </div>
@@ -505,6 +761,30 @@
     </section>
   </main>
 
+  <!-- QR Share Modal (Chia sẻ đếm điểm cho máy khác qua quét mã QR) -->
+  <div id="refQrModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="w-full max-w-xs rounded-2xl bg-zinc-900 border border-zinc-700 p-4 text-center space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-extrabold text-white flex items-center gap-1.5">
+          <i data-lucide="qr-code" class="w-4 h-4 text-amber-400"></i>
+          Quét QR Để Đếm Điểm
+        </h3>
+        <button id="btnCloseRefQr" type="button" class="w-7 h-7 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold">✕</button>
+      </div>
+      <p class="text-[11px] text-zinc-400">
+        Dùng camera điện thoại thứ 2 quét mã này để mở bảng trọng tài phòng <strong id="qrRoomBadge" class="text-amber-400">SAN-1</strong>:
+      </p>
+      <div class="bg-white p-3 rounded-xl inline-flex items-center justify-center mx-auto shadow-inner">
+        <div id="refQrContainer" class="w-[196px] h-[196px] flex items-center justify-center"></div>
+      </div>
+      <div id="refQrUrlText" class="text-[10px] font-mono text-sky-300 bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 break-all select-all"></div>
+      <div class="flex items-center gap-2 pt-1">
+        <button id="btnCopyFromQr" type="button" class="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-xs font-bold text-white active:scale-95 transition">Sao chép Link</button>
+        <button id="btnCloseRefQrBottom" type="button" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-200 active:scale-95 transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-semibold text-white shadow-2xl opacity-0 pointer-events-none transition-all duration-300"></div>
 
   <script>
@@ -538,8 +818,11 @@
         bytesSentWindow: 0,
         lastBitrateTick: Date.now(),
         roomId: 'SAN-1',
+        scoreHistory: [],
+        hudCollapsed: false,
         match: {
-          category: 'Đôi Nam · Chung Kết',
+          tournament: 'GIẢI PICKLEBALL OPEN',
+          category: 'BÁN KẾT ĐÔI NAM PRO',
           team1: 'Bách / Nam',
           team2: 'Tuấn / Hùng',
           score1: 0,
@@ -602,8 +885,10 @@
         roomCodeInput: document.getElementById('roomCodeInput'),
         btnConnectRoom: document.getElementById('btnConnectRoom'),
         btnCopyRefLink: document.getElementById('btnCopyRefLink'),
+        tournamentName: document.getElementById('tournamentName'),
         matchCategory: document.getElementById('matchCategory'),
         scorePos: document.getElementById('scorePos'),
+        scoreTheme: document.getElementById('scoreTheme'),
         team1Name: document.getElementById('team1Name'),
         team2Name: document.getElementById('team2Name'),
         localScore1: document.getElementById('localScore1'),
@@ -694,6 +979,8 @@
             tickerText: els.tickerText.value,
             tickerMode: els.tickerMode.value,
             tickerTheme: els.tickerTheme.value,
+            tournamentName: els.tournamentName ? els.tournamentName.value : state.match.tournament,
+            scoreTheme: els.scoreTheme ? els.scoreTheme.value : 'navy-gold',
             roomId: state.roomId
           }));
         } catch (e) {}
@@ -714,6 +1001,11 @@
           if (d.tickerText) els.tickerText.value = d.tickerText;
           if (d.tickerMode) els.tickerMode.value = d.tickerMode;
           if (d.tickerTheme) els.tickerTheme.value = d.tickerTheme;
+          if (d.tournamentName && els.tournamentName) {
+            state.match.tournament = d.tournamentName;
+            els.tournamentName.value = d.tournamentName;
+          }
+          if (d.scoreTheme && els.scoreTheme) els.scoreTheme.value = d.scoreTheme;
           if (d.roomId) {
             state.roomId = d.roomId;
             els.roomCodeInput.value = d.roomId;
@@ -730,6 +1022,7 @@
       }
 
       function syncScoreUI() {
+        if (els.tournamentName && state.match.tournament !== undefined) els.tournamentName.value = state.match.tournament;
         els.matchCategory.value = state.match.category;
         els.team1Name.value = state.match.team1;
         els.team2Name.value = state.match.team2;
@@ -751,6 +1044,65 @@
         els.btnLocalHand2.className = state.match.serverHand === 2
           ? 'px-2.5 py-1 rounded-lg bg-amber-500 text-zinc-950 text-[11px] font-bold'
           : 'px-2.5 py-1 rounded-lg bg-zinc-800 text-zinc-300 text-[11px] font-bold';
+
+        // Cập nhật nhãn động trên nút nổi màn hình (chỉ hiện trên máy, không phát sóng)
+        const hudStatus = document.getElementById('hudServeStatus');
+        const hudSwitchLbl = document.getElementById('hudSwitchServeLabel');
+        const btnAutoSwitch = document.getElementById('btnAutoSwitchServe');
+        const servingName = (state.match.servingTeam === 1 ? state.match.team1 : state.match.team2) || `Đội ${state.match.servingTeam}`;
+        const shortName = servingName.length > 14 ? servingName.slice(0, 14) + '…' : servingName;
+        const isHand1 = Number(state.match.serverHand) === 1;
+        if (hudStatus) {
+          hudStatus.textContent = `Giao: ${shortName} · T${isHand1 ? 1 : 2} (${state.match.score1}-${state.match.score2})`;
+        }
+        if (hudSwitchLbl) hudSwitchLbl.textContent = 'Đổi giao';
+        if (btnAutoSwitch) btnAutoSwitch.textContent = 'Đổi giao';
+      }
+
+      function pushScoreSnapshot() {
+        state.scoreHistory.push({
+          score1: state.match.score1,
+          score2: state.match.score2,
+          set1: state.match.set1,
+          set2: state.match.set2,
+          servingTeam: state.match.servingTeam,
+          serverHand: state.match.serverHand
+        });
+        if (state.scoreHistory.length > 30) state.scoreHistory.shift();
+      }
+
+      function autoScoreActiveTeam() {
+        pushScoreSnapshot();
+        if (state.match.servingTeam === 1) {
+          state.match.score1++;
+        } else {
+          state.match.score2++;
+        }
+        broadcastLocalScore();
+      }
+
+      function autoSwitchServeOrHand() {
+        pushScoreSnapshot();
+        if (Number(state.match.serverHand) === 1) {
+          // Tay 1 mất giao -> chuyển sang Tay 2 cùng đội
+          state.match.serverHand = 2;
+        } else {
+          // Tay 2 mất giao -> đổi giao sang đội kia, bắt đầu từ Tay 1
+          state.match.servingTeam = state.match.servingTeam === 1 ? 2 : 1;
+          state.match.serverHand = 1;
+        }
+        broadcastLocalScore();
+      }
+
+      function undoLastScoreAction() {
+        if (!state.scoreHistory.length) {
+          showToast('Chưa có thao tác nào để hoàn tác');
+          return;
+        }
+        const prev = state.scoreHistory.pop();
+        Object.assign(state.match, prev);
+        broadcastLocalScore();
+        showToast('Đã hoàn tác 1 bước');
       }
 
       function broadcastLocalScore() {
@@ -1094,15 +1446,193 @@
       function drawPickleballScoreboard(w, h, scale) {
         if (!els.scoreEnabled.checked) return;
 
-        const m = 22 * scale;
-        const cardW = Math.min(w - m * 2, 390 * scale);
-        const headerH = 28 * scale;
-        const rowH = 38 * scale;
-        const totalH = headerH + rowH * 2;
+        const THEMES = {
+          'navy-gold': {
+            headerBg: '#0f2952',
+            headerTitle: '#fde047',
+            headerCol: '#bae6fd',
+            row1Bg: '#173a6e',
+            row2Bg: '#122e59',
+            nameText: '#ffffff',
+            accent1: '#38bdf8',
+            accent2: '#facc15',
+            setBg1: '#0c2042',
+            setBg2: '#091936',
+            setText: '#e0f2fe',
+            scoreServeBg: '#f59e0b',
+            scoreServeText: '#09090b',
+            scoreNormalBg: '#0369a1',
+            scoreNormalText: '#ffffff',
+            footerBg: '#081730',
+            footerText: '#fde047',
+            dotColor: '#fde047',
+            border: 'rgba(186, 230, 253, 0.55)',
+            divider: 'rgba(186, 230, 253, 0.25)'
+          },
+          'emerald-orange': {
+            headerBg: '#064e3b',
+            headerTitle: '#a7f3d0',
+            headerCol: '#d1fae5',
+            row1Bg: '#065f46',
+            row2Bg: '#044b38',
+            nameText: '#ffffff',
+            accent1: '#34d399',
+            accent2: '#fb923c',
+            setBg1: '#022c22',
+            setBg2: '#02231b',
+            setText: '#d1fae5',
+            scoreServeBg: '#f97316',
+            scoreServeText: '#ffffff',
+            scoreNormalBg: '#0f766e',
+            scoreNormalText: '#ffffff',
+            footerBg: '#022c22',
+            footerText: '#6ee7b7',
+            dotColor: '#bef264',
+            border: 'rgba(167, 243, 208, 0.5)',
+            divider: 'rgba(167, 243, 208, 0.24)'
+          },
+          'crimson-navy': {
+            headerBg: '#881337',
+            headerTitle: '#fef08a',
+            headerCol: '#fecdd3',
+            row1Bg: '#1e293b',
+            row2Bg: '#0f172a',
+            nameText: '#ffffff',
+            accent1: '#fb7185',
+            accent2: '#38bdf8',
+            setBg1: '#334155',
+            setBg2: '#273449',
+            setText: '#f8fafc',
+            scoreServeBg: '#e11d48',
+            scoreServeText: '#ffffff',
+            scoreNormalBg: '#475569',
+            scoreNormalText: '#ffffff',
+            footerBg: '#9f1239',
+            footerText: '#ffffff',
+            dotColor: '#facc15',
+            border: 'rgba(254, 205, 211, 0.5)',
+            divider: 'rgba(255, 255, 255, 0.22)'
+          },
+          'violet-cyan': {
+            headerBg: '#3b0764',
+            headerTitle: '#67e8f9',
+            headerCol: '#e9d5ff',
+            row1Bg: '#4c1d95',
+            row2Bg: '#3b0764',
+            nameText: '#ffffff',
+            accent1: '#22d3ee',
+            accent2: '#f472b6',
+            setBg1: '#2e1065',
+            setBg2: '#240b52',
+            setText: '#f3e8ff',
+            scoreServeBg: '#06b6d4',
+            scoreServeText: '#082f49',
+            scoreNormalBg: '#6d28d9',
+            scoreNormalText: '#ffffff',
+            footerBg: '#1e1b4b',
+            footerText: '#a5f3fc',
+            dotColor: '#fde047',
+            border: 'rgba(165, 243, 252, 0.5)',
+            divider: 'rgba(233, 213, 255, 0.25)'
+          }
+        };
+
+        const themeKey = (els.scoreTheme && els.scoreTheme.value) || 'navy-gold';
+        const T = THEMES[themeKey] || THEMES['navy-gold'];
+
+        const m = 20 * scale;
+        const topH = 24 * scale;
+        const footH = 23 * scale;
+        const scoreBoxW = 46 * scale;
+        const setBoxW = 36 * scale;
+        const dotZoneW = 30 * scale;
+        const namePadLeft = 11 * scale;
+        const namePadRight = 8 * scale;
+
+        const nameFontSingle = `800 ${Math.round(13.8 * scale)}px Inter, sans-serif`;
+        const nameFontWrap = `800 ${Math.round(12 * scale)}px Inter, sans-serif`;
+
+        const t1Upper = String(state.match.team1 || '').trim().toUpperCase();
+        const t2Upper = String(state.match.team2 || '').trim().toUpperCase();
+        const tourneyTitle = (state.match.tournament || 'GIẢI PICKLEBALL OPEN').trim().toUpperCase();
+
+        // Tính chiều rộng khung co giãn theo tên VĐV, có giới hạn tối thiểu & tối đa
+        ctx.font = nameFontSingle;
+        const rawNameW = Math.max(ctx.measureText(t1Upper).width, ctx.measureText(t2Upper).width);
+        ctx.font = `800 ${Math.round(11.5 * scale)}px Inter, sans-serif`;
+        const rawTourneyW = ctx.measureText(tourneyTitle).width;
+
+        const minCardW = Math.min(w - m * 2, 285 * scale);
+        const maxCardW = Math.min(w - m * 2, 410 * scale);
+        const desiredLeftW = Math.max(rawNameW + namePadLeft + namePadRight + dotZoneW, rawTourneyW + 20 * scale);
+        const desiredCardW = desiredLeftW + setBoxW + scoreBoxW;
+        const cardW = Math.max(minCardW, Math.min(maxCardW, desiredCardW));
+
+        const leftZoneW = cardW - scoreBoxW - setBoxW;
+        const nameMaxW = Math.max(80 * scale, leftZoneW - dotZoneW - namePadLeft - namePadRight);
+        const setX = 0; // relative offset computed after bx
+
+        // Hàm tự động xuống dòng (ưu tiên tách tại dấu '/' cho đánh đôi, tối đa 2 dòng)
+        function wrapTeamName(text) {
+          if (!text) return [''];
+          ctx.font = nameFontSingle;
+          if (ctx.measureText(text).width <= nameMaxW) return [text];
+
+          ctx.font = nameFontWrap;
+          if (ctx.measureText(text).width <= nameMaxW) return [text];
+
+          // Ưu tiên ngắt dòng tại dấu '/' nếu là cặp VĐV
+          const slashIdx = text.indexOf('/');
+          if (slashIdx > 0 && slashIdx < text.length - 1) {
+            const p1 = text.slice(0, slashIdx + 1).trim();
+            const p2 = text.slice(slashIdx + 1).trim();
+            if (p1 && p2) return [p1, p2];
+          }
+
+          // Ngắt theo từ
+          const words = text.split(/\s+/);
+          let line1 = '';
+          let line2 = '';
+          for (let i = 0; i < words.length; i++) {
+            const test = line1 ? line1 + ' ' + words[i] : words[i];
+            if (!line2 && ctx.measureText(test).width <= nameMaxW) {
+              line1 = test;
+            } else {
+              line2 = line2 ? line2 + ' ' + words[i] : words[i];
+            }
+          }
+          if (!line1) return [text];
+          return line2 ? [line1, line2] : [line1];
+        }
+
+        const rows = [
+          {
+            lines: wrapTeamName(t1Upper),
+            score: state.match.score1,
+            set: state.match.set1,
+            serving: state.match.servingTeam === 1,
+            bg: T.row1Bg,
+            setBg: T.setBg1,
+            accent: T.accent1
+          },
+          {
+            lines: wrapTeamName(t2Upper),
+            score: state.match.score2,
+            set: state.match.set2,
+            serving: state.match.servingTeam === 2,
+            bg: T.row2Bg,
+            setBg: T.setBg2,
+            accent: T.accent2
+          }
+        ];
+
+        const rowHeights = rows.map(r => (r.lines.length > 1 ? 43 * scale : 34 * scale));
+        const teamsTotalH = rowHeights[0] + rowHeights[1];
+        const totalH = topH + teamsTotalH + footH;
         const pos = els.scorePos.value;
 
         let bx = m;
-        let by = m + (els.badgeEnabled.checked && pos === 'tl' ? 46 * scale : 0);
+        let by = m + (els.badgeEnabled.checked && pos === 'tl' ? 44 * scale : 0);
         if (pos === 'tr') {
           bx = w - cardW - m;
           by = m;
@@ -1111,92 +1641,126 @@
           by = h - totalH - (els.tickerEnabled.checked ? 54 * scale : m);
         }
 
-        // Card Base
-        ctx.fillStyle = '#09090b';
-        roundRect(ctx, bx, by, cardW, totalH, 10 * scale);
-        ctx.fill();
+        const absSetX = bx + leftZoneW;
+        const absScoreX = absSetX + setBoxW;
 
-        // Top Category Bar (căn giữa, bỏ chữ TAY 1 / TAY 2)
-        ctx.fillStyle = '#059669';
-        roundRect(ctx, bx, by, cardW, headerH, 10 * scale);
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 12 * scale;
+        ctx.shadowOffsetY = 4 * scale;
+        ctx.fillStyle = T.footerBg;
+        roundRect(ctx, bx, by, cardW, totalH, 4 * scale);
         ctx.fill();
-        ctx.fillRect(bx, by + headerH - 8 * scale, cardW, 8 * scale);
+        ctx.restore();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `800 ${Math.round(12.5 * scale)}px Inter, sans-serif`;
+        // Clip inside crisp broadcast rectangle
+        ctx.save();
+        roundRect(ctx, bx, by, cardW, totalH, 4 * scale);
+        ctx.clip();
+
+        // 1. TOP HEADER BAR: [TÊN GIẢI ĐẤU] | [SET] | [ĐIỂM]
+        ctx.fillStyle = T.headerBg;
+        ctx.fillRect(bx, by, cardW, topH);
+
         ctx.textBaseline = 'middle';
-        ctx.textAlign = 'center';
-        ctx.fillText(state.match.category.toUpperCase(), bx + cardW / 2, by + headerH / 2 + 1, cardW - 24 * scale);
+        ctx.fillStyle = T.headerTitle;
+        ctx.font = `800 ${Math.round(11.5 * scale)}px Inter, sans-serif`;
         ctx.textAlign = 'left';
+        ctx.fillText(tourneyTitle, bx + 10 * scale, by + topH / 2 + 0.5, leftZoneW - 16 * scale);
 
-        // Kích thước các vùng: [Tên VĐV (nền riêng)] | [Chấm giao 1/2] | [Set] | [Điểm số (nền riêng)]
-        const scoreBoxW = 48 * scale;
-        const setBoxW = 28 * scale;
-        const dotZoneW = 34 * scale;
-        const nameZoneW = cardW - scoreBoxW - setBoxW - dotZoneW;
+        ctx.fillStyle = T.headerCol;
+        ctx.font = `800 ${Math.round(9.5 * scale)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('SET', absSetX + setBoxW / 2, by + topH / 2 + 0.5);
+        ctx.fillText('ĐIỂM', absScoreX + scoreBoxW / 2, by + topH / 2 + 0.5);
 
-        const rows = [
-          { name: state.match.team1, score: state.match.score1, set: state.match.set1, serving: state.match.servingTeam === 1, color: '#10b981' },
-          { name: state.match.team2, score: state.match.score2, set: state.match.set2, serving: state.match.servingTeam === 2, color: '#38bdf8' }
-        ];
-
+        // 2. TEAM ROWS (tự co giãn chiều cao nếu xuống 2 dòng)
+        let curY = by + topH;
         rows.forEach((r, idx) => {
-          const ry = by + headerH + idx * rowH;
+          const rh = rowHeights[idx];
+          const ry = curY;
+          curY += rh;
 
-          // 1. Nền riêng cho khu vực tên VĐV (xanh đen đậm tách biệt với ô điểm)
-          ctx.fillStyle = idx === 0 ? '#1e293b' : '#0f172a';
-          ctx.fillRect(bx, ry, nameZoneW + dotZoneW, rowH);
+          // Nền riêng cho tên VĐV
+          ctx.fillStyle = r.bg;
+          ctx.fillRect(bx, ry, leftZoneW, rh);
 
-          // Thanh màu nhận diện đội bên trái
-          ctx.fillStyle = r.color;
-          ctx.fillRect(bx, ry, 5 * scale, rowH);
+          // Thanh màu nhấn mảnh bên trái
+          ctx.fillStyle = r.accent;
+          ctx.fillRect(bx, ry, 4 * scale, rh);
 
-          // Tên VĐV
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = `700 ${Math.round(14.5 * scale)}px Inter, sans-serif`;
+          // Tên VĐV (1 dòng hoặc tự xuống 2 dòng)
+          ctx.fillStyle = T.nameText;
           ctx.textAlign = 'left';
-          ctx.fillText(r.name, bx + 13 * scale, ry + rowH / 2 + 1, nameZoneW - 18 * scale);
+          if (r.lines.length === 1) {
+            ctx.font = nameFontSingle;
+            ctx.fillText(r.lines[0], bx + namePadLeft, ry + rh / 2 + 0.5, nameMaxW);
+          } else {
+            ctx.font = nameFontWrap;
+            const lineGap = 15.5 * scale;
+            ctx.fillText(r.lines[0], bx + namePadLeft, ry + rh / 2 - lineGap / 2 + 0.5, nameMaxW);
+            ctx.fillText(r.lines[1], bx + namePadLeft, ry + rh / 2 + lineGap / 2 + 0.5, nameMaxW);
+          }
 
-          // 2. Chấm báo hiệu tay giao (1 chấm = Tay 1, 2 chấm = Tay 2) nằm giữa Tên VĐV và Điểm số
+          // Chấm báo tay giao bóng (1 chấm = Tay 1, 2 chấm = Tay 2)
           if (r.serving) {
-            const dotCenterY = ry + rowH / 2;
-            const dotZoneStart = bx + nameZoneW;
-            ctx.fillStyle = '#facc15';
+            const dotCenterY = ry + rh / 2;
+            const dotZoneStart = bx + leftZoneW - dotZoneW;
+            ctx.fillStyle = T.dotColor;
             if (Number(state.match.serverHand) === 2) {
               ctx.beginPath();
-              ctx.arc(dotZoneStart + dotZoneW * 0.33, dotCenterY, 4.5 * scale, 0, Math.PI * 2);
-              ctx.arc(dotZoneStart + dotZoneW * 0.69, dotCenterY, 4.5 * scale, 0, Math.PI * 2);
+              ctx.arc(dotZoneStart + dotZoneW * 0.30, dotCenterY, 4.2 * scale, 0, Math.PI * 2);
+              ctx.arc(dotZoneStart + dotZoneW * 0.70, dotCenterY, 4.2 * scale, 0, Math.PI * 2);
               ctx.fill();
             } else {
               ctx.beginPath();
-              ctx.arc(dotZoneStart + dotZoneW * 0.5, dotCenterY, 4.8 * scale, 0, Math.PI * 2);
+              ctx.arc(dotZoneStart + dotZoneW * 0.55, dotCenterY, 4.5 * scale, 0, Math.PI * 2);
               ctx.fill();
             }
           }
 
-          // 3. Ô Set (nền trung tính)
-          const setX = bx + nameZoneW + dotZoneW;
-          ctx.fillStyle = '#27272a';
-          ctx.fillRect(setX, ry, setBoxW, rowH);
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = `700 ${Math.round(13 * scale)}px Inter, sans-serif`;
+          // Cột SET
+          ctx.fillStyle = r.setBg;
+          ctx.fillRect(absSetX, ry, setBoxW, rh);
+          ctx.fillStyle = T.setText;
+          ctx.font = `800 ${Math.round(16 * scale)}px Inter, sans-serif`;
           ctx.textAlign = 'center';
-          ctx.fillText(String(r.set), setX + setBoxW / 2, ry + rowH / 2 + 1);
+          ctx.fillText(String(r.set), absSetX + setBoxW / 2, ry + rh / 2 + 1);
 
-          // 4. Ô Điểm số (nền riêng nổi bật: Vàng cam khi giao / Xám đậm khi đỡ)
-          const scoreX = setX + setBoxW;
-          ctx.fillStyle = r.serving ? '#f59e0b' : '#334155';
-          ctx.fillRect(scoreX, ry, scoreBoxW, rowH);
-          ctx.fillStyle = r.serving ? '#09090b' : '#ffffff';
-          ctx.font = `900 ${Math.round(20 * scale)}px Inter, sans-serif`;
-          ctx.fillText(String(r.score), scoreX + scoreBoxW / 2, ry + rowH / 2 + 1);
+          // Cột ĐIỂM
+          ctx.fillStyle = r.serving ? T.scoreServeBg : T.scoreNormalBg;
+          ctx.fillRect(absScoreX, ry, scoreBoxW, rh);
+          ctx.fillStyle = r.serving ? T.scoreServeText : T.scoreNormalText;
+          ctx.font = `900 ${Math.round(18.5 * scale)}px Inter, sans-serif`;
+          ctx.fillText(String(r.score), absScoreX + scoreBoxW / 2, ry + rh / 2 + 1);
           ctx.textAlign = 'left';
-
-          if (idx === 0) {
-            ctx.fillStyle = 'rgba(255,255,255,0.14)';
-            ctx.fillRect(bx, ry + rowH - 1, cardW, 1);
-          }
         });
+
+        // 3. BOTTOM FOOTER BAR: NỘI DUNG - VÒNG ĐẤU
+        const footY = by + topH + teamsTotalH;
+        ctx.fillStyle = T.footerBg;
+        ctx.fillRect(bx, footY, cardW, footH);
+        ctx.fillStyle = T.footerText;
+        ctx.font = `800 ${Math.round(11 * scale)}px Inter, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(String(state.match.category || '').toUpperCase(), bx + cardW / 2, footY + footH / 2 + 0.5, cardW - 20 * scale);
+        ctx.textAlign = 'left';
+
+        // 4. CRISP BROADCAST GRID LINES
+        ctx.fillStyle = T.divider;
+        ctx.fillRect(bx, by + topH - 1, cardW, 1);
+        ctx.fillRect(bx, by + topH + rowHeights[0] - 1, cardW, 1);
+        ctx.fillRect(bx, footY - 1, cardW, 1);
+        ctx.fillRect(absSetX, by, 1, topH + teamsTotalH);
+        ctx.fillRect(absScoreX, by, 1, topH + teamsTotalH);
+
+        ctx.restore();
+
+        // Outer border
+        ctx.strokeStyle = T.border;
+        ctx.lineWidth = Math.max(1, 1.3 * scale);
+        roundRect(ctx, bx, by, cardW, totalH, 4 * scale);
+        ctx.stroke();
       }
 
       function drawMultiLogos(w, h, scale) {
@@ -1217,7 +1781,7 @@
           curY = m;
         } else if (pos === 'tl') {
           curX = m;
-          curY = m + (els.badgeEnabled.checked ? 46 * scale : 0) + (els.scoreEnabled.checked && els.scorePos.value === 'tl' ? 112 * scale : 0);
+          curY = m + (els.badgeEnabled.checked ? 46 * scale : 0) + (els.scoreEnabled.checked && els.scorePos.value === 'tl' ? 124 * scale : 0);
         } else if (pos === 'br') {
           const totalW = state.logos.reduce((acc, item) => {
             const ratio = item.img.width / (item.img.height || 1);
@@ -1418,7 +1982,15 @@
       }
 
       function pickMimeType() {
-        for (const m of ['video/webm;codecs=h264,opus', 'video/webm;codecs=vp8,opus', 'video/webm']) {
+        const list = [
+          'video/webm;codecs=h264,opus',
+          'video/webm;codecs=h264',
+          'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+          'video/mp4',
+          'video/webm;codecs=vp8,opus',
+          'video/webm'
+        ];
+        for (const m of list) {
           if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m;
         }
         return '';
@@ -1457,11 +2029,16 @@
             showToast('Vui lòng nhập đủ Khóa luồng cho các kênh đã bật.');
             return;
           }
+          const chosenMime = pickMimeType();
+          const isH264 = /h264|avc1|mp4/i.test(chosenMime);
+          const isAac = /mp4a/i.test(chosenMime);
           connectRelayAndStream(relay, {
             youtube: useYt ? { url: els.ytUrl.value.trim(), key: els.ytKey.value.trim() } : null,
             facebook: useFb ? { url: els.fbUrl.value.trim(), key: els.fbKey.value.trim() } : null,
             fps: Number(els.fpsSelect.value) || 30,
-            bitrate: getCanvasDimensions().bps
+            bitrate: getCanvasDimensions().bps,
+            isH264,
+            isAac
           });
         } else {
           beginLiveUI(false);
@@ -1676,7 +2253,21 @@
       els.btnClearLog.addEventListener('click', () => { els.logBox.innerHTML = ''; });
 
       // Scoreboard local controls
+      if (els.tournamentName) {
+        els.tournamentName.addEventListener('input', () => { state.match.tournament = els.tournamentName.value; saveSettings(); broadcastLocalScore(); });
+      }
+      if (els.scoreTheme) {
+        els.scoreTheme.addEventListener('change', () => { saveSettings(); });
+      }
       els.matchCategory.addEventListener('input', () => { state.match.category = els.matchCategory.value; broadcastLocalScore(); });
+      const btnSetP1 = document.getElementById('btnLocalSetP1');
+      const btnSetM1 = document.getElementById('btnLocalSetM1');
+      const btnSetP2 = document.getElementById('btnLocalSetP2');
+      const btnSetM2 = document.getElementById('btnLocalSetM2');
+      if (btnSetP1) btnSetP1.addEventListener('click', () => { state.match.set1++; broadcastLocalScore(); });
+      if (btnSetM1) btnSetM1.addEventListener('click', () => { state.match.set1 = Math.max(0, state.match.set1 - 1); broadcastLocalScore(); });
+      if (btnSetP2) btnSetP2.addEventListener('click', () => { state.match.set2++; broadcastLocalScore(); });
+      if (btnSetM2) btnSetM2.addEventListener('click', () => { state.match.set2 = Math.max(0, state.match.set2 - 1); broadcastLocalScore(); });
       els.team1Name.addEventListener('input', () => { state.match.team1 = els.team1Name.value; broadcastLocalScore(); });
       els.team2Name.addEventListener('input', () => { state.match.team2 = els.team2Name.value; broadcastLocalScore(); });
       document.getElementById('btnLocalP1').addEventListener('click', () => { state.match.score1++; state.match.servingTeam = 1; broadcastLocalScore(); });
@@ -1688,15 +2279,142 @@
       els.btnLocalHand1.addEventListener('click', () => { state.match.serverHand = 1; broadcastLocalScore(); });
       els.btnLocalHand2.addEventListener('click', () => { state.match.serverHand = 2; broadcastLocalScore(); });
       document.getElementById('btnLocalReset').addEventListener('click', () => {
+        pushScoreSnapshot();
         state.match.score1 = 0; state.match.score2 = 0; state.match.servingTeam = 1; state.match.serverHand = 2;
         broadcastLocalScore();
       });
 
+      // Nút Ghi điểm tự động & Đổi Tay/Đổi Giao (trên màn hình + trong tab Tỷ số)
+      ['btnHudScorePoint', 'btnAutoScorePoint'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', autoScoreActiveTeam);
+      });
+      ['btnHudSwitchServe', 'btnAutoSwitchServe'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', autoSwitchServeOrHand);
+      });
+      ['btnHudUndo', 'btnLocalUndo'].forEach(id => {
+        const b = document.getElementById(id);
+        if (b) b.addEventListener('click', undoLastScoreAction);
+      });
+
+      const btnToggleHud = document.getElementById('btnToggleHud');
+      const hudButtonsRow = document.getElementById('hudButtonsRow');
+      if (btnToggleHud && hudButtonsRow) {
+        btnToggleHud.addEventListener('click', () => {
+          state.hudCollapsed = !state.hudCollapsed;
+          hudButtonsRow.classList.toggle('hidden', state.hudCollapsed);
+          btnToggleHud.textContent = state.hudCollapsed ? 'Hiện nút' : 'Ẩn nút';
+        });
+      }
+
+      function getRefereeShareUrl() {
+        const room = (els.roomCodeInput.value || 'SAN-1').trim().toUpperCase();
+        let base = '';
+        if (/^https?:$/i.test(location.protocol) && location.host) {
+          base = `${location.origin}${location.pathname.replace(/index\.html$/, '')}`;
+        } else {
+          const relayRaw = normalizeWssUrl(els.relayUrl.value);
+          if (relayRaw && /^wss?:\/\//i.test(relayRaw)) {
+            base = relayRaw.replace(/^wss:\/\//i, 'https://').replace(/^ws:\/\//i, 'http://').replace(/\/+$/, '') + '/';
+          } else {
+            base = 'https://liverstremer.onrender.com/';
+          }
+        }
+        return `${base.endsWith('/') ? base : base + '/'}referee.html?room=${encodeURIComponent(room)}`;
+      }
+
+      const btnToggleSidePanel = document.getElementById('btnToggleSidePanel');
+      const btnExitFullscreen = document.getElementById('btnExitFullscreen');
+      const sidePanelToggleLabel = document.getElementById('sidePanelToggleLabel');
+
+      function setFullscreenLiveMode(enable) {
+        document.body.classList.toggle('fullscreen-live-mode', enable);
+        if (sidePanelToggleLabel) sidePanelToggleLabel.textContent = enable ? 'Thu Gọn' : 'Toàn Màn';
+        if (enable && hudButtonsRow) {
+          state.hudCollapsed = false;
+          hudButtonsRow.classList.remove('hidden');
+          if (btnToggleHud) btnToggleHud.textContent = 'Ẩn nút';
+        }
+      }
+
+      if (btnToggleSidePanel) {
+        btnToggleSidePanel.addEventListener('click', () => {
+          const isFs = document.body.classList.contains('fullscreen-live-mode');
+          setFullscreenLiveMode(!isFs);
+          if (!isFs && document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        });
+      }
+      if (btnExitFullscreen) {
+        btnExitFullscreen.addEventListener('click', () => {
+          setFullscreenLiveMode(false);
+          if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+          }
+        });
+      }
+
+      // Chia sẻ đếm điểm qua mã QR
+      const btnShowRefQr = document.getElementById('btnShowRefQr');
+      const refQrModal = document.getElementById('refQrModal');
+      const refQrContainer = document.getElementById('refQrContainer');
+      const refQrUrlText = document.getElementById('refQrUrlText');
+      const qrRoomBadge = document.getElementById('qrRoomBadge');
+      const btnCloseRefQr = document.getElementById('btnCloseRefQr');
+      const btnCloseRefQrBottom = document.getElementById('btnCloseRefQrBottom');
+      const btnCopyFromQr = document.getElementById('btnCopyFromQr');
+
+      function openRefQrModal() {
+        const room = (els.roomCodeInput.value || 'SAN-1').trim().toUpperCase();
+        const url = getRefereeShareUrl();
+        if (qrRoomBadge) qrRoomBadge.textContent = room;
+        if (refQrUrlText) refQrUrlText.textContent = url;
+        if (refQrContainer) {
+          refQrContainer.innerHTML = '';
+          if (typeof QRCode !== 'undefined') {
+            new QRCode(refQrContainer, {
+              text: url,
+              width: 192,
+              height: 192,
+              colorDark: '#09090b',
+              colorLight: '#ffffff',
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          } else {
+            refQrContainer.innerHTML = '<div class="text-xs text-zinc-700 p-2">Không tải được thư viện QR (kiểm tra mạng)</div>';
+          }
+        }
+        if (refQrModal) refQrModal.classList.remove('hidden');
+      }
+
+      function closeRefQrModal() {
+        if (refQrModal) refQrModal.classList.add('hidden');
+      }
+
+      if (btnShowRefQr) btnShowRefQr.addEventListener('click', openRefQrModal);
+      if (btnCloseRefQr) btnCloseRefQr.addEventListener('click', closeRefQrModal);
+      if (btnCloseRefQrBottom) btnCloseRefQrBottom.addEventListener('click', closeRefQrModal);
+      if (refQrModal) {
+        refQrModal.addEventListener('click', (e) => {
+          if (e.target === refQrModal) closeRefQrModal();
+        });
+      }
+      if (btnCopyFromQr) {
+        btnCopyFromQr.addEventListener('click', () => {
+          const url = getRefereeShareUrl();
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => showToast('Đã sao chép link Trọng Tài!'));
+          } else {
+            showToast(url);
+          }
+        });
+      }
+
       els.btnConnectRoom.addEventListener('click', connectRefereeRoom);
       els.btnCopyRefLink.addEventListener('click', () => {
-        const room = (els.roomCodeInput.value || 'SAN-1').trim().toUpperCase();
-        const base = `${location.origin}${location.pathname.replace(/index\.html$/, '')}`;
-        const url = `${base.endsWith('/') ? base : base + '/'}referee.html?room=${encodeURIComponent(room)}`;
+        const url = getRefereeShareUrl();
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(() => showToast('Đã sao chép link Trọng Tài!'));
         } else {
